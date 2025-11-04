@@ -1,6 +1,6 @@
 from random import choice, choices, random
 import numpy as np
-from mbp.memory_learner import MemoryLearner
+from models.memory_learner import MemoryLearner
 
 LEARNED = 100
 NULL_HYPOTHESIS = -1

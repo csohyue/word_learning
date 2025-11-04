@@ -1,4 +1,4 @@
-from mbp.memory_buffer import WorkingLearningSpace
+from models.memory_buffer import WorkingLearningSpace
 
 
 class MemoryLearner(object):

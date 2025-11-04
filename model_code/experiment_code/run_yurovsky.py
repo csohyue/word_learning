@@ -6,7 +6,7 @@ import sys
 
 sys.path.append('.')
 
-from run_cswl import run_one_exp_one_subject
+from run_cswl import learn_one_exp_one_subject
 
 ALL = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2',
        'd1', 'd2', 'e1', 'e2', 'f1', 'f2',
@@ -117,7 +117,7 @@ def run_one_exp(model, exp, data, attention, count=300):
     attentions = []
     all_runs = initialize_arrays(count)
     for i in range(count):
-        learner = run_one_exp_one_subject(attention, model, data)
+        learner = learn_one_exp_one_subject(attention, model, data)
         d_p, s_p = run_one_trial_primacy(learner)
         d_r, s_r = run_one_trial_recency(learner)
         d_b_p, d_b_r, s_b = run_one_trial_both(learner)

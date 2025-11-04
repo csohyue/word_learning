@@ -5,9 +5,9 @@ import sys
 
 sys.path.append('.')
 
-from mbp.memory_bound_pursuit import MemoryBoundPursuitLearner
-from mbp.pursuit_learner import PursuitLearner
-from mbp.library import parse_input_data
+from models.memory_bound_pursuit import MemoryBoundPursuitLearner
+from models.pursuit_learner import PursuitLearner
+from models.library import parse_input_data
 
 COLUMNS = ["condition", "word_type", "subject", "item", "instance", "phase", "accuracy", "selection",
            "buffer size", "word in lexicon", "association", "model"]

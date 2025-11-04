@@ -3,7 +3,7 @@ import pandas as pd
 import random
 import string
 
-from run_cswl import run_one_exp_one_subject
+from run_cswl import learn_one_exp_one_subject
 
 """
 This contains functions to run an experiment with training and testing
@@ -78,7 +78,7 @@ def run_one_exp(model, training_path, count, num_opt=4, mean_memory_size=7):
     condition_col = []
 
     for i in range(count):
-        learner = run_one_exp_one_subject(mean_memory_size, model, training_path)
+        learner = learn_one_exp_one_subject(mean_memory_size, model, training_path)
         all_words = [a for a in string.ascii_lowercase[:18]]
         accuracy, responses = run_testing_generated(all_words, learner, num_opt)
         model_col.extend([model]*len(all_words))
