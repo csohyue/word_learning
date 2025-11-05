@@ -5,7 +5,7 @@ import sys
 
 sys.path.append('.')
 
-from models.memory_bound_pursuit import MemoryBoundPursuitLearner
+from model_code.models.might import MIGHTLearner
 from models.pursuit_learner import PursuitLearner
 from models.library import parse_input_data
 
@@ -105,7 +105,7 @@ def run_one_exp(model, count=300, mean_memory_size=7, ppa=True):
             learner = PursuitLearner(1.0)
         else:
             memory_size = max(1, round(np.random.normal(mean_memory_size, 1)))
-            learner = MemoryBoundPursuitLearner(memory_size)
+            learner = MIGHTLearner(memory_size)
         
         selections = [0 for _ in range(42)]
         lex_size_target = 0

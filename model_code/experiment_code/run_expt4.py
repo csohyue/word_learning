@@ -5,7 +5,7 @@ import sys
 
 sys.path.append('.')
 
-from models.memory_bound_pursuit import MemoryBoundPursuitLearner
+from model_code.models.might import MIGHTLearner
 from models.pursuit_learner import PursuitLearner
 from models.library import parse_input_data
 
@@ -87,7 +87,7 @@ def run_one_exp_switch(model, count=300, mean_memory_size=10):
     for i in range(count):
         if model == "mbp":
             memory_size = max(1, round(np.random.normal(mean_memory_size, 1)))
-            learner = MemoryBoundPursuitLearner(memory_size)
+            learner = MIGHTLearner(memory_size)
         elif model == "pursuit":
             learner = PursuitLearner(0.75)
         elif model == "perf_pursuit":
@@ -197,7 +197,7 @@ def run_one_exp_same(model, count=300, mean_memory_size=10):
         memory_size = max(1, round(np.random.normal(mean_memory_size, 1)))
         if model == "mbp":
             memory_size = max(1, round(np.random.normal(mean_memory_size, 1)))
-            learner = MemoryBoundPursuitLearner(memory_size)
+            learner = MIGHTLearner(memory_size)
         elif model == "pursuit":
             learner = PursuitLearner(0.75)
         elif model == "perf_pursuit":

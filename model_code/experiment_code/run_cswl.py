@@ -6,7 +6,7 @@ import argparse
 sys.path.append('../pursuit')
 
 sys.path.append('.')
-from models.memory_bound_pursuit import MemoryBoundPursuitLearner
+from models.might import MIGHTLearner
 from models.pursuit_learner import PursuitLearner
 from models.library import parse_input_data
 
@@ -14,11 +14,15 @@ COLUMNS = ["model", "condition", "subject", "phase", "exposure", "word",
            "selection", "accuracy", "learning_space_size"]
 
 def learn_one_exp_one_subject(mean_memory_size, model, training_path):
+    """
+    Function used by other experimental runs -- this is one subject doing the learning phase for
+    one experiment. Many experiments don't have the learning trajectory.
+    """
     memory_size = max(1, round(np.random.normal(mean_memory_size, 1)))
     if model == "pursuit":
         learner = PursuitLearner(0.75)
     else:
-        learner = MemoryBoundPursuitLearner(memory_size)
+        learner = MIGHTLearner(memory_size)
     parsed_input = parse_input_data(training_path)
     for utterance in parsed_input:
         learner.one_utterance(utterance)
@@ -44,7 +48,7 @@ def track_one_subject(model, condition, subject, training_path, testing_path, me
     if model == "pursuit":
         learner = PursuitLearner(0.75)
     else:
-        learner = MemoryBoundPursuitLearner(memory_size)
+        learner = MIGHTLearner(memory_size)
     parsed_input = parse_input_data(training_path)
     for exposure in range(len(parsed_input)):
         utterance = parsed_input[exposure]
@@ -96,4 +100,3 @@ if __name__ == '__main__':
     count = args.count if args.count else 300
 
     run_experiment(args.model, args.condition, args.training, args.testing, memory, count)
-
