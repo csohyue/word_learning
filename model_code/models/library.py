@@ -1,3 +1,5 @@
+"""Module """
+
 def extract_words_meanings(situation):
     """
     Given an utterance, extract the words and objects present
