@@ -16,13 +16,13 @@ class PursuitLearner():
     def __init__(self, subject_id, retrieval=0.75):
         self.associations = {}
         self.meanings = []
-        self.subject_id = subject_id
+        self._subject_id = subject_id
         self.retrieval_rate = retrieval
 
     @property
     def subject_id(self):
         """ Get subject id (as property) """
-        return self.subject_id
+        return self._subject_id
 
     # The following functions are used internally
     def add_novel_meanings(self, m_u):

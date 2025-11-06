@@ -1,4 +1,4 @@
-"""Module """
+""" Module with functions for running the models """
 
 def extract_words_meanings(situation):
     """
@@ -17,8 +17,8 @@ def parse_input_data(training_data_path):
     """
     Parse the input data
 
-    The input data is expected to have the word, then the set of meanings, and optionally, a set of probabilities
-    associated with each meaning. This was for the case of visual parsing
+    The input data is expected to have the word, then the set of meanings, and optionally,
+    a set of probabilities associated with each meaning.
 
     :param training_data_path: str, path to training data
     :return: list [(w_u_1, m_u_1), (w_u_2, m_u_2), etc] list of word, meaning

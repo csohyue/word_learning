@@ -1,0 +1,195 @@
+"""Module providing the code to run a Cross-Situational Word Learning task """
+
+import argparse
+import os
+import numpy as np
+import pandas as pd
+from models.might import MIGHTLearner
+from models.pursuit_learner import PursuitLearner
+from models.library import parse_input_data, extract_golden_standard
+
+COLUMNS = ["experiment", "condition", "model", # fixed for the run
+           "learning_space_size", "subject", # fixed for the subject
+           "phase", "trial_index", "exposure", "word", "selection", "accuracy", # for each exposure
+           "previous_correct" # for each exposure
+           ]
+
+EXPOSURE_COLUMNS = COLUMNS[5:]
+
+def learn_one_exp_one_subject(mean_memory_size, model, training):
+    """
+    Function used by other experimental runs -- this is one subject doing the learning phase for
+    one experiment. Many experiments don't have the learning trajectory.
+    """
+    memory_size = max(1, round(np.random.normal(mean_memory_size, 1)))
+    if model == "pursuit":
+        learner = PursuitLearner(0.75)
+    else:
+        learner = MIGHTLearner(memory_size)
+    parsed_input = parse_input_data(training)
+    for utterance in parsed_input:
+        learner.one_utterance(utterance)
+    return learner
+
+def add_exposure_to_log(log, values):
+    """ Add a single exposure to the log
+    """
+    for item, value in values.items():
+        log[EXPOSURE_COLUMNS.index(item)].append(value)
+    return log
+
+def get_accuracy(word, selection, path_to_gold):
+    """ Get accuracy of selection """
+    if path_to_gold:
+        correct_pairings = extract_golden_standard(path_to_gold)
+        return int((word, selection) in correct_pairings)
+
+    else:
+        return int(word.lower == selection.lower())
+
+def one_subject_learning(learner, training, log, gold_path):
+    """ One subject, learning exposure
+    
+    """
+    all_words_seen = {}
+    previous_correct = {}
+    parsed_input = parse_input_data(training)
+    for index_i, utterance in enumerate(parsed_input):
+        selections = learner.one_utterance(utterance)
+        words = utterance[0]
+        for i, word in enumerate(words):
+            if word not in all_words_seen:
+                all_words_seen[word] = 0
+                previous_correct[word] = None
+            all_words_seen[word] += 1
+            selection = str(learner.meanings[selections[i]])
+            accuracy = get_accuracy(word, selection, gold_path)
+            values = {"trial_index": index_i + 1, "exposure": all_words_seen[word],
+                        "word": word, "selection": selection, 
+                        "accuracy": accuracy, "previous_correct": previous_correct[word], 
+                        "phase": "learning"}
+            log = add_exposure_to_log(log, values)
+            previous_correct[word] = accuracy
+    return [learner, log, previous_correct]
+
+def one_subject_testing(learner, testing, log, previous_correct, gold_path):
+    """ One subject, testing
+    """
+    all_words_tested = {}
+    parsed_testing = parse_input_data(testing)
+    for index_i, [words, options] in enumerate(parsed_testing):
+        for word in words:
+            if word not in all_words_tested:
+                all_words_tested[word] = 0
+            all_words_tested[word] += 1
+            selection = learner.multiple_choice(word, options)
+            accuracy = get_accuracy(word, selection, gold_path)
+            values = {"trial_index": index_i + 1, "exposure": all_words_tested[word],
+                      "word": word, "selection": selection, 
+                      "accuracy": accuracy, "previous_correct": previous_correct[word], 
+                      "phase": "testing"}
+            log = add_exposure_to_log(log, values)
+    return log
+
+def one_subject_all(learner, training_path, testing_path, gold):
+    """ Run one subject with training and testing and return the learner and the
+    log, created as a pandas dataframe
+    """
+    log = []
+    for _ in EXPOSURE_COLUMNS:
+        log.append([])
+    learner, log, last_selection = one_subject_learning(learner, training_path, log, gold)
+    log = one_subject_testing(learner, testing_path, log, last_selection, gold)
+    subject_df = pd.DataFrame([[]]).drop(0)
+    for item in EXPOSURE_COLUMNS:
+        subject_df[item] = log[EXPOSURE_COLUMNS.index(item)]
+    subject_df["subject"] = learner.subject_id
+    if isinstance(learner, MIGHTLearner):
+        subject_df["learning_space_size"] = learner.learning_space.size
+    else:
+        subject_df["learning_space_size"] = "NA"
+    return learner, subject_df
+
+def run_experiment(model, train_test, gold_path_file, mean_memory_size, run_count):
+    """ Run experiment with multiple runs
+    """
+    expt_df = pd.DataFrame([[]]).drop(0)
+    for run_id in range(run_count):
+        memory_size = max(1, round(np.random.normal(mean_memory_size, 1)))
+        if model == "pursuit":
+            learner = PursuitLearner(run_id + 1, 0.75)
+        else:
+            learner = MIGHTLearner(run_id + 1, memory_size)
+        learner, subject_df = one_subject_all(learner, train_test[0], train_test[1], gold_path_file)
+        expt_df = pd.concat([subject_df, expt_df])
+    return expt_df
+
+def run_and_log_expt_condition(args, memory, count, path_pair):
+    """ function to run one condition with one model and write the csv
+    """
+    expt_log = run_experiment(args.model, path_pair, args.gold, memory, count)
+    expt_log["experiment"] = args.experiment
+    expt_log["condition"] = args.condition
+    expt_log["model"] = args.model
+    expt_log = expt_log[COLUMNS]
+    return expt_log
+
+def get_training_testing(experiment, condition_input, test):
+    """ Get training and testing paths """
+    # Extract all the conditions first (should be prefixing the training.txt files)
+    conditions = []
+    if condition_input is None:
+        all_entries = os.listdir("data/" + experiment)
+        for entry in all_entries:
+            if entry[-12:] == "training.txt":
+                conditions.append(entry[:-13])
+    else:
+        conditions.append(condition_input)
+
+    # Get a dictionary of training files
+    training_dictionary = {}
+    for cond in conditions:
+        training_dictionary[cond] = "data/" + experiment + "/" + cond + "_training.txt"
+
+    # Create a dictionary with conditions --> (training, testing)
+    path_dictionary = {}
+    for cond, training in training_dictionary.items():
+        testing_path = test if test else "data/" + experiment + "/" + cond + "_testing.txt"
+        path_dictionary[cond] = (training, testing_path)
+    return path_dictionary
+
+def define_arguments():
+    """ Moving the arg parsing into a separate function """
+    parser = argparse.ArgumentParser(prog="computational models for cswl",
+                                     description="run word learning")
+    parser.add_argument("model", help="model (might or pursuit)")
+    parser.add_argument("experiment",
+                        help="experiment (should be the directory name in 'data')")
+    parser.add_argument("-cond", "--condition",
+                        help="condition (all if there are multiple conditions)", type=str)
+    parser.add_argument("-test", "--testing_path",
+                        help="path to testing file if it doesn't match training", type=str)
+    parser.add_argument("-m", "--memory",help="size of learning-space for MIGHT (default 7)",
+                        type=int)
+    parser.add_argument("-c", "--count", help="number of subjects (default 300)", type=int)
+    parser.add_argument("--gold", help="path to golden standard of labels and referents",
+                        type=str)
+
+    args = parser.parse_args()
+    return args
+
+if __name__ == '__main__':
+    arguments = define_arguments()
+
+    mean_memory = arguments.memory if arguments.memory else 7
+    runs = arguments.count if arguments.count else 300
+    paths = get_training_testing(arguments.experiment, arguments.condition, arguments.testing_path)
+
+    for condition_name, training_testing in paths.items():
+        expt = run_and_log_expt_condition(arguments, mean_memory, runs, training_testing)
+
+    file_name = arguments.model + "_" + arguments.experiment
+    if arguments.condition is not None:
+        file_name = file_name + "_" + arguments.condition
+    file_name = file_name + "_results.csv"
+    expt.to_csv(file_name, index=False)
