@@ -49,7 +49,7 @@ def extract_golden_standard(path_to_standard: str = './data/train.gold') -> dict
     Extracts the golden standard associations into a dict
 
     :param path_to_standard: str, path to the golden standard associations
-    :return: list<(word<str>, meaning<str>)> tuples
+    :return: set<(word<str>, meaning<str>)> tuples
     """
     lexicon = set()
     with open(path_to_standard) as f:

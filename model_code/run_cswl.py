@@ -44,8 +44,7 @@ def get_accuracy(word, selection, path_to_gold):
         correct_pairings = extract_golden_standard(path_to_gold)
         return int((word, selection) in correct_pairings)
 
-    else:
-        return int(word.lower == selection.lower())
+    return int(word.lower() == selection.lower())
 
 def one_subject_learning(learner, training, log, gold_path):
     """ One subject, learning exposure
@@ -124,12 +123,12 @@ def run_experiment(model, train_test, gold_path_file, mean_memory_size, run_coun
         expt_df = pd.concat([subject_df, expt_df])
     return expt_df
 
-def run_and_log_expt_condition(args, memory, count, path_pair):
+def run_and_log_expt_condition(args, memory, count, condition, path_pair):
     """ function to run one condition with one model and write the csv
     """
     expt_log = run_experiment(args.model, path_pair, args.gold, memory, count)
     expt_log["experiment"] = args.experiment
-    expt_log["condition"] = args.condition
+    expt_log["condition"] = condition
     expt_log["model"] = args.model
     expt_log = expt_log[COLUMNS]
     return expt_log
@@ -166,7 +165,7 @@ def define_arguments():
     parser.add_argument("experiment",
                         help="experiment (should be the directory name in 'data')")
     parser.add_argument("-cond", "--condition",
-                        help="condition (all if there are multiple conditions)", type=str)
+                        help="condition (should prefix training & testing files)", type=str)
     parser.add_argument("-test", "--testing_path",
                         help="path to testing file if it doesn't match training", type=str)
     parser.add_argument("-m", "--memory",help="size of learning-space for MIGHT (default 7)",
@@ -184,12 +183,20 @@ if __name__ == '__main__':
     mean_memory = arguments.memory if arguments.memory else 7
     runs = arguments.count if arguments.count else 300
     paths = get_training_testing(arguments.experiment, arguments.condition, arguments.testing_path)
+    # print(paths)
+
+    all_runs = pd.DataFrame([[]]).drop(0)
 
     for condition_name, training_testing in paths.items():
-        expt = run_and_log_expt_condition(arguments, mean_memory, runs, training_testing)
+        expt = run_and_log_expt_condition(arguments, mean_memory, runs,
+                                          condition_name, training_testing)
+        all_runs = pd.concat([all_runs, expt])
 
-    file_name = arguments.model + "_" + arguments.experiment
+    file_name = arguments.model
+    if arguments.memory is not None:
+        file_name = file_name + "_" + str(arguments.memory)
+    file_name = file_name + "_" + arguments.experiment
     if arguments.condition is not None:
         file_name = file_name + "_" + arguments.condition
-    file_name = file_name + "_results.csv"
-    expt.to_csv(file_name, index=False)
+    file_name = "results/" + file_name + "_results.csv"
+    all_runs.to_csv(file_name, index=False)
