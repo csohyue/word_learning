@@ -157,6 +157,18 @@ def get_training_testing(experiment, condition_input, test):
         path_dictionary[cond] = (training, testing_path)
     return path_dictionary
 
+def extract_training_test(expt_dir, paths_file):
+    """ Use golden standard """
+    path_set = extract_golden_standard("data/" + expt_dir + "/" + paths_file)
+    path_dictionary = {}
+    for path_pair in path_set:
+        train, test = path_pair
+        condition = train + "_" + test
+        training_file = "data/" + expt_dir + "/" + train + "_training.txt"
+        testing_file = "data/" + expt_dir + "/" + test + "_testing.txt"
+        path_dictionary[condition] = (training_file, testing_file)
+    return path_dictionary
+
 def define_arguments():
     """ Moving the arg parsing into a separate function """
     parser = argparse.ArgumentParser(prog="computational models for cswl",
@@ -166,12 +178,14 @@ def define_arguments():
                         help="experiment (should be the directory name in 'data')")
     parser.add_argument("-cond", "--condition",
                         help="condition (should prefix training & testing files)", type=str)
+    parser.add_argument("-paths", "--paths_to_data",
+                        help="path to txt document with training, testing pairs", type=str)
     parser.add_argument("-test", "--testing_path",
                         help="path to testing file if it doesn't match training", type=str)
     parser.add_argument("-m", "--memory",help="size of learning-space for MIGHT (default 7)",
                         type=int)
     parser.add_argument("-c", "--count", help="number of subjects (default 300)", type=int)
-    parser.add_argument("--gold", help="path to golden standard of labels and referents",
+    parser.add_argument("-gold", "--gold", help="path to golden standard of labels and referents",
                         type=str)
 
     args = parser.parse_args()
@@ -182,8 +196,11 @@ if __name__ == '__main__':
 
     mean_memory = arguments.memory if arguments.memory else 7
     runs = arguments.count if arguments.count else 300
-    paths = get_training_testing(arguments.experiment, arguments.condition, arguments.testing_path)
-    # print(paths)
+    if arguments.paths_to_data:
+        paths = extract_training_test(arguments.experiment, arguments.paths_to_data)
+    else:
+        paths = get_training_testing(arguments.experiment, arguments.condition,
+                                     arguments.testing_path)
 
     all_runs = pd.DataFrame([[]]).drop(0)
 

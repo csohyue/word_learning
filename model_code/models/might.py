@@ -61,11 +61,11 @@ class MIGHTLearner(MemoryLearner):
             return None
         for m in m_u:
             a_max = -2
-            for word, _ in self.associations.items():
-                a_m_w = self.associations[word][self.meanings.index(m)]
+            for _, association in self.associations.items():
+                a_m_w = association[self.meanings.index(m)]
                 a_max = max(a_max, a_m_w)
-            for word, _ in self.lexicon.items():
-                if m in self.lexicon[word]:
+            for _, meanings in self.lexicon.items():
+                if m in meanings:
                     a_max = LEARNED
             max_associations.append(a_max)
         # get the minimum value of the max associations of the possible meanings in the utterance
@@ -202,7 +202,7 @@ class MIGHTLearner(MemoryLearner):
                     closest_competitor_score = UNSEEN
             # Must be more than 2x score of closest competitor
             if top_score > 2 * closest_competitor_score:
-                meaning_i = np.where(self.associations[word] == top_score)[0][0]
+                meaning_i = np.where(word_a == top_score)[0][0]
             if meaning_i is not None:
                 if word not in self.lexicon:
                     self.lexicon[word] = []

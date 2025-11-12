@@ -1,0 +1,35 @@
+A
+a1 a2 g i 
+
+B
+b1 b2 l a1 
+
+C
+c1 c2 e2 a2 
+
+D
+d1 d2 j i 
+
+E
+e1 e2 d1 k 
+
+F
+f1 f2 k c2 
+
+G
+g f2 h b2 
+
+H
+h d1 j c1 
+
+I
+i b1 a1 e1 
+
+J
+j a2 c2 b1 
+
+K
+k d2 f1 l 
+
+L
+l h f1 c1

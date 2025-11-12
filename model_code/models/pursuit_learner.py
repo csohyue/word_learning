@@ -1,3 +1,5 @@
+""" Module with the pursuit learner (Stevens et. al., 2017) """
+
 from random import choice, random
 import numpy as np
 
@@ -10,14 +12,19 @@ class PursuitLearner():
     """
     A learner using Pursuit
     Attributes:
-        associations             Dictionary{<str> word: np.array<float> association values
-        meanings                 [<str> object] index of the meaning corresponds to index of association value
+        associations            Dictionary{<str> word: np.array<float> association values
+        meanings                [<str> object] index of the meaning corresponds to 
+                                index of association value
     """
-    def __init__(self, subject_id, retrieval=0.75):
+    def __init__(self, subject_id=0, retrieval=0.75, parameters = (LEARNING_RATE, SMOOTHING, THRESHOLD)):
+        """ Initialize Pursuit learner """
         self.associations = {}
         self.meanings = []
         self._subject_id = subject_id
         self.retrieval_rate = retrieval
+        self.learning_rate = parameters[0]
+        self.smoothing = parameters[1]
+        self.threshold = parameters[2]
 
     @property
     def subject_id(self):
@@ -41,7 +48,8 @@ class PursuitLearner():
         """
         Mutual exclusivity
 
-        returns the best possible object associated with a word; based on which meaning is least "tied" to another word
+        returns the best possible object associated with a word; based on which 
+        meaning is least "tied" to another word
 
         :param m_u: [<str>] the list of objects present in the utterance
         :return: int; index of the best meaning choice from m_u
@@ -52,17 +60,17 @@ class PursuitLearner():
             return None
         for m in m_u:
             a_max = -2
-            for word in self.associations:
-                a_m_w = self.associations[word][self.meanings.index(m)]
+            for _, association in self.associations.items():
+                a_m_w = association[self.meanings.index(m)]
                 if a_m_w > a_max:
                     a_max = a_m_w
             max_associations.append(a_max)
         # get the minimum value of the max associations of the possible meanings in the utterance
         min_val = min(max_associations)
         possible_meaning_indices = []
-        for i in range(len(m_u)):
+        for i, meaning in enumerate(m_u):
             if max_associations[i] == min_val:
-                possible_meaning_indices.append(self.meanings.index(m_u[i]))
+                possible_meaning_indices.append(self.meanings.index(meaning))
         return choice(possible_meaning_indices)
 
     def update_association(self, word, meaning, reward):
@@ -75,14 +83,14 @@ class PursuitLearner():
         """
         current = self.associations[word][meaning]
         if reward:
-            # If the hypothesis has not yet been made, then initialize to LEARNING_RATE
+            # If the hypothesis has not yet been made, then initialize to learning rate
             if current == 0:
-                self.associations[word][meaning] = LEARNING_RATE
+                self.associations[word][meaning] = self.learning_rate
             # Otherwise, increment the association score
             else:
-                self.associations[word][meaning] = current + LEARNING_RATE*(1 - current)
+                self.associations[word][meaning] = current + self.learning_rate*(1 - current)
         else:
-            self.associations[word][meaning] =  current * (1 - LEARNING_RATE)
+            self.associations[word][meaning] =  current * (1 - self.learning_rate)
 
     def add_novel_word(self, word, m_u):
         """
@@ -101,10 +109,11 @@ class PursuitLearner():
             return None
         self.update_association(word, meaning_i_from_me, True)
         return meaning_i_from_me
-        
+
     def get_best_meaning_i(self, word):
         """
-        Gets the best hypothesis for a word given the association values probabilistically, as in test
+        Gets the best hypothesis for a word given the association values probabilistically,
+        as in test
 
         :param word: <str> the word
         :return: index of the object that is most associated with the word
@@ -140,8 +149,7 @@ class PursuitLearner():
             return hypothesis
 
     def train_on_utterance(self, w_u, m_u):
-        """
-
+        """ Function that takes in the words and meanings and learns
         :param w_u: <str> the word
         :param m_u: [<str>] the list of objects present in the utterance
         """
@@ -152,7 +160,7 @@ class PursuitLearner():
                 hyp = self.add_novel_word(w, m_u)
             else:
                 hyp = self.update_word(w, m_u)
-            
+
             selections.append(hyp)
         return selections
 
@@ -161,13 +169,13 @@ class PursuitLearner():
         "Learn" words, move from association matrix to a learned lexicon
         """
         lexicon = {}
-        for word in self.associations:
+        for word, association in self.associations.items():
             lexicon[word] = []
-            denominator = sum(self.associations[word]) + (len(self.meanings) * SMOOTHING)
-            for meaning_i in range(self.meanings):
-                numerator = self.associations[word][meaning_i] + SMOOTHING
-                if numerator / denominator > THRESHOLD:
-                    lexicon[word].append(self.meanings[meaning_i])
+            denominator = sum(association) + (len(self.meanings) * self.smoothing)
+            for meaning_i, meaning in enumerate(self.meanings):
+                numerator = association[meaning_i] + self.smoothing
+                if numerator / denominator > self.threshold:
+                    lexicon[word].append(meaning)
         return lexicon
 
     # The following functions are called externally
@@ -197,6 +205,5 @@ class PursuitLearner():
         if self.meanings[best_hypothesis] in options:
             if random() < self.retrieval_rate:
                 return self.meanings[best_hypothesis]
-        
+
         return choice(options)
-        

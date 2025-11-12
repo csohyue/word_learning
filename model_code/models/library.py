@@ -43,7 +43,6 @@ def parse_input_data(training_data_path):
 
 # Get evaluation metrics
 
-
 def extract_golden_standard(path_to_standard: str = './data/train.gold') -> dict:
     """
     Extracts the golden standard associations into a dict
@@ -59,7 +58,7 @@ def extract_golden_standard(path_to_standard: str = './data/train.gold') -> dict
     return lexicon
 
 
-def eval_model(lexicon):
+def eval_model(lexicon, path_to_golden):
     """
     Get back the evaluation metrics on a learned lexicon
 
@@ -67,9 +66,12 @@ def eval_model(lexicon):
     :return: precision, recall, f-score
     """
     lexicon_set = set(lexicon)
-    correct = len(GOLDEN_STANDARD.intersection(lexicon_set))
+    golden = extract_golden_standard(path_to_golden)
+    correct = len(golden.intersection(lexicon_set))
+    if float(correct) == 0:
+        return 0, 0, 0
     p = float(correct) / len(lexicon)
-    r = float(correct) / len(GOLDEN_STANDARD)
+    r = float(correct) / len(golden)
     f = (2 * p * r) / (p + r)
     return p, r, f
 
