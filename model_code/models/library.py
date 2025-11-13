@@ -24,7 +24,7 @@ def parse_input_data(training_data_path):
     :return: list [(w_u_1, m_u_1), (w_u_2, m_u_2), etc] list of word, meaning
         lists utterances
     """
-    all_training = open(training_data_path).read()
+    all_training = open(training_data_path, encoding="utf-8").read()
     lines = all_training.strip().split('\n\n')
     parsed = []
     for line in lines:
@@ -51,7 +51,7 @@ def extract_golden_standard(path_to_standard: str = './data/train.gold') -> dict
     :return: set<(word<str>, meaning<str>)> tuples
     """
     lexicon = set()
-    with open(path_to_standard) as f:
+    with open(path_to_standard, encoding="utf-8") as f:
         for line in f:
             word, meaning = line.split()
             lexicon.add((word, meaning))

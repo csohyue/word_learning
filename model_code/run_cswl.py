@@ -55,8 +55,7 @@ def one_subject_learning(learner, training, log, gold_path):
     parsed_input = parse_input_data(training)
     for index_i, utterance in enumerate(parsed_input):
         selections = learner.one_utterance(utterance)
-        words = utterance[0]
-        for i, word in enumerate(words):
+        for i, word in enumerate(utterance[0]): # words
             if word not in all_words_seen:
                 all_words_seen[word] = 0
                 previous_correct[word] = None
@@ -126,7 +125,8 @@ def run_experiment(model, train_test, gold_path_file, mean_memory_size, run_coun
 def run_and_log_expt_condition(args, memory, count, condition, path_pair):
     """ function to run one condition with one model and write the csv
     """
-    expt_log = run_experiment(args.model, path_pair, args.gold, memory, count)
+    path_to_gold = "data/" + args.experiment + "/" + args.gold if args.gold else args.gold
+    expt_log = run_experiment(args.model, path_pair, path_to_gold, memory, count)
     expt_log["experiment"] = args.experiment
     expt_log["condition"] = condition
     expt_log["model"] = args.model
@@ -153,7 +153,8 @@ def get_training_testing(experiment, condition_input, test):
     # Create a dictionary with conditions --> (training, testing)
     path_dictionary = {}
     for cond, training in training_dictionary.items():
-        testing_path = test if test else "data/" + experiment + "/" + cond + "_testing.txt"
+        test_file = test if test else cond + "_testing.txt"
+        testing_path = "data/" + experiment + "/" + test_file
         path_dictionary[cond] = (training, testing_path)
     return path_dictionary
 
@@ -179,13 +180,13 @@ def define_arguments():
     parser.add_argument("-cond", "--condition",
                         help="condition (should prefix training & testing files)", type=str)
     parser.add_argument("-paths", "--paths_to_data",
-                        help="path to txt document with training, testing pairs", type=str)
+                        help="name of txt document with training, testing pairs", type=str)
     parser.add_argument("-test", "--testing_path",
-                        help="path to testing file if it doesn't match training", type=str)
+                        help="name of testing file if it doesn't match training", type=str)
     parser.add_argument("-m", "--memory",help="size of learning-space for MIGHT (default 7)",
                         type=int)
     parser.add_argument("-c", "--count", help="number of subjects (default 300)", type=int)
-    parser.add_argument("-gold", "--gold", help="path to golden standard of labels and referents",
+    parser.add_argument("-gold", "--gold", help="name of file with gold standard",
                         type=str)
 
     args = parser.parse_args()
