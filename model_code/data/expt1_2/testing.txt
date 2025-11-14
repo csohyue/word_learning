@@ -1,0 +1,41 @@
+R1
+r1 r12 r13 r14 a3 r22 r34 r4 b4
+
+R2
+r2 r22 r23 r24 w23 r32 r44 w3 e4
+
+R3
+r3 r32 r33 r34 w33 w42 r14 f a4
+
+R4
+r4 r42 r43 r44 w43 f4 r24 a c3
+
+W1
+w1 w12 w13 w14 b4 d3 w34 w42 r13
+
+W2
+w2 w22 w23 w24 d4 e4 w44 b a4
+
+W3
+w3 w32 w33 w34 b3 c3 w14 r1 e3
+
+W4
+w4 w42 w43 w44 w13 f4 w24 e a3
+
+A
+a a2 a3 a4 d3 b3 f2 r2 w22
+
+B
+b b2 b3 b4 w32 d4 c2 w2 r33
+
+C
+c c2 c3 c4 r42 f4 d2 w1 r12
+
+D
+d d2 d3 d4 e3 r13 b2 c w12
+
+E
+e e2 e3 e4 r23 c4 a2 d f3
+
+F
+f f2 f3 f4 r43 w13 e2 r3 c4

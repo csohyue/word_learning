@@ -1,0 +1,83 @@
+A
+a2
+
+B
+b2
+
+R1
+r1
+
+W1
+w1
+
+R1
+r1 a3 b3 w13
+
+R2
+r2
+
+W2
+w2 
+
+R2
+r2 w23 a4 b4
+
+R3
+r3
+
+W3
+w3
+
+R3
+r3 w33 w12 r13 
+
+R4
+r4
+
+W4
+w4
+
+R4
+r4 w4 r13 w23
+
+C
+c2
+
+D
+d2
+
+E
+e2
+
+R1
+r1 r22 r33 c3
+
+F
+f2
+
+R2
+r2 r32 c4 a3
+
+A
+a d3 b3 c3
+
+B
+b w32 d4 e3
+
+C
+c r42 f4 a4
+
+R3
+r3 w42 e4 b4
+
+D
+d e3 f3 r13
+
+R4
+r4 f3 d3 e4
+
+E
+e r23 f4 c4
+
+F
+f r43 d4 w13

@@ -60,8 +60,12 @@ def one_subject_learning(learner, training, log, gold_path):
                 all_words_seen[word] = 0
                 previous_correct[word] = None
             all_words_seen[word] += 1
-            selection = str(learner.meanings[selections[i]])
-            accuracy = get_accuracy(word, selection, gold_path)
+            if selections[i] is not None:
+                selection = str(learner.meanings[selections[i]])
+                accuracy = get_accuracy(word, selection, gold_path)
+            else:
+                selection = None
+                accuracy = None
             values = {"trial_index": index_i + 1, "exposure": all_words_seen[word],
                         "word": word, "selection": selection, 
                         "accuracy": accuracy, "previous_correct": previous_correct[word], 
@@ -202,7 +206,7 @@ if __name__ == '__main__':
     else:
         paths = get_training_testing(arguments.experiment, arguments.condition,
                                      arguments.testing_path)
-
+    print(paths)
     all_runs = pd.DataFrame([[]]).drop(0)
 
     for condition_name, training_testing in paths.items():
