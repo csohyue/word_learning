@@ -28,6 +28,8 @@ def parse_input_data(training_data_path):
     lines = all_training.strip().split('\n\n')
     parsed = []
     for line in lines:
+        if not line:
+            break
         utterance = line.split('\n')
         words = utterance[0].split()
         meanings = utterance[1].split()
