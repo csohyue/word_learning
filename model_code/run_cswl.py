@@ -2,6 +2,7 @@
 
 import argparse
 import os
+from random import shuffle
 import numpy as np
 import pandas as pd
 from models.might import MIGHTLearner
@@ -52,8 +53,7 @@ def one_subject_learning(learner, training, log, gold_path):
     """
     all_words_seen = {}
     previous_correct = {}
-    parsed_input = parse_input_data(training)
-    for index_i, utterance in enumerate(parsed_input):
+    for index_i, utterance in enumerate(training):
         selections = learner.one_utterance(utterance)
         for i, word in enumerate(utterance[0]): # words
             if word not in all_words_seen:
@@ -78,8 +78,7 @@ def one_subject_testing(learner, testing, log, previous_correct, gold_path):
     """ One subject, testing
     """
     all_words_tested = {}
-    parsed_testing = parse_input_data(testing)
-    for index_i, [words, options] in enumerate(parsed_testing):
+    for index_i, [words, options] in enumerate(testing):
         for word in words:
             if word not in all_words_tested:
                 all_words_tested[word] = 0
@@ -93,15 +92,15 @@ def one_subject_testing(learner, testing, log, previous_correct, gold_path):
             log = add_exposure_to_log(log, values)
     return log
 
-def one_subject_all(learner, training_path, testing_path, gold):
+def one_subject_all(learner, trianing_input, testing_input, gold):
     """ Run one subject with training and testing and return the learner and the
     log, created as a pandas dataframe
     """
     log = []
     for _ in EXPOSURE_COLUMNS:
         log.append([])
-    learner, log, last_selection = one_subject_learning(learner, training_path, log, gold)
-    log = one_subject_testing(learner, testing_path, log, last_selection, gold)
+    learner, log, last_selection = one_subject_learning(learner, trianing_input, log, gold)
+    log = one_subject_testing(learner, testing_input, log, last_selection, gold)
     subject_df = pd.DataFrame([[]]).drop(0)
     for item in EXPOSURE_COLUMNS:
         subject_df[item] = log[EXPOSURE_COLUMNS.index(item)]
@@ -126,11 +125,27 @@ def run_experiment(model, train_test, gold_path_file, mean_memory_size, run_coun
         expt_df = pd.concat([subject_df, expt_df])
     return expt_df
 
+def repeat_and_randomize(path_pair, repetitions, randomize):
+    """ Repeat and randomize test and training
+    """
+    inputs = []
+    for path in path_pair:
+        current_input = []
+        one_iteration = parse_input_data(path)
+        for _ in range(int(repetitions)):
+            if randomize:
+                shuffle(one_iteration)
+            current_input.extend(one_iteration)
+        inputs.append(current_input)
+    return inputs
+
 def run_and_log_expt_condition(args, memory, count, condition, path_pair):
     """ function to run one condition with one model and write the csv
     """
     path_to_gold = "data/" + args.experiment + "/" + args.gold if args.gold else args.gold
-    expt_log = run_experiment(args.model, path_pair, path_to_gold, memory, count)
+    repetitions = args.repetitions if args.repetitions else 1
+    input_pair = repeat_and_randomize(path_pair, repetitions, args.randomize)
+    expt_log = run_experiment(args.model, input_pair, path_to_gold, memory, count)
     expt_log["experiment"] = args.experiment
     expt_log["condition"] = condition
     expt_log["model"] = args.model
@@ -192,6 +207,10 @@ def define_arguments():
     parser.add_argument("-c", "--count", help="number of subjects (default 300)", type=int)
     parser.add_argument("-gold", "--gold", help="name of file with gold standard",
                         type=str)
+    parser.add_argument("-rep", "--repetitions", help="Number of repetitions, default 1",
+                        type=str)
+    parser.add_argument("-rand", "--randomize", help="if should be randomized, default not",
+                        action="store_true")
 
     args = parser.parse_args()
     return args
