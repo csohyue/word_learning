@@ -18,8 +18,11 @@ library(lme4)
 library(lmerTest)
 library(ggsignif)
 library(TeachingDemos)
+library(penngradlings)
 
-theme_set(theme_minimal())
+theme_set(theme_pgl_minimal())
+
+# theme_set(theme_minimal())
 
 `%!in%` <- Negate(`%in%`)
 
@@ -51,9 +54,9 @@ expt1_fubg_pred <- tibble(
                0, 0, 0, 0, 0, 0), 
   "se" = c(0, 0, 0, 0, 0, 0,
            0, 0, 0, 0, 0, 0), 
-  "expt" = c("FUbG", "FUbG", "FUbG", "FUbG", "FUbG", "FUbG",
-             "FUbG-fixed", "FUbG-fixed", "FUbG-fixed", 
-             "FUbG-fixed", "FUbG-fixed", "FUbG-fixed")
+  "expt" = c("FUb", "FUb", "FUb", "FUb", "FUb", "FUb",
+             "FUb-fixed", "FUb-fixed", "FUb-fixed", 
+             "FUb-fixed", "FUb-fixed", "FUb-fixed")
 )
 
 expt1_might_pred <- read_csv("../model_code/results/might_expt1_2_results.csv") %>%
@@ -1009,8 +1012,8 @@ all_results <- expt1_aggr_test_selections %>%
   mutate(
     expt = factor(expt, levels = c(
       "MIGHT",
-      "Pursuit", "FUbG",
-      "FUbG-fixed",
+      "Pursuit", "FUb",
+      "FUb-fixed",
       "Expt 1", "Expt 2",
       "MIGHT\n(larger memory)"
     )),
@@ -1047,7 +1050,9 @@ expt1_paper_plot <- ggplot(filter(all_results), aes(x=condition, y=mean_acc, fil
         ) +
   scale_fill_manual(values=
                       # col2grey(
-                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
+                        c("#5f1c99", 
+                          # "#b2abd2", 
+                          "#e66101", "#fbd863")
                         # )
                     ) +
   geom_hline(yintercept=(1/9), linetype='dotted') 
