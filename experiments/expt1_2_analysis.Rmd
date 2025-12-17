@@ -20,9 +20,9 @@ library(ggsignif)
 library(TeachingDemos)
 library(penngradlings)
 
-theme_set(theme_pgl_minimal())
+# theme_set(theme_pgl_minimal())
 
-# theme_set(theme_minimal())
+theme_set(theme_minimal())
 
 `%!in%` <- Negate(`%in%`)
 
