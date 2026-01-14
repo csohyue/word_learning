@@ -2,7 +2,7 @@
 
 Contains the code and data for the paper:
 
-Yue, C.S., LaTourrette, S., Yang, C., & Trueswell, J. (submitted)
+Yue, LaTourrette, Yang, & Trueswell (submitted)
 
 ## Contents
 
@@ -29,7 +29,7 @@ Yue, C.S., LaTourrette, S., Yang, C., & Trueswell, J. (submitted)
     -   `expt1_data.csv` – CSV file containing Experiment 1 data
 
         | column name | description |
-        |---------------------------|----------------------------------------------------|
+        |-------------------------|-----------------------------------------------|
         | `experiment` | which experiment (1-4) |
         | `id` | participant id |
         | `condition` | "Confirm" or "Recall" |
@@ -52,21 +52,21 @@ Yue, C.S., LaTourrette, S., Yang, C., & Trueswell, J. (submitted)
 
     -   `expt2_data.csv` - CSV file containing Experiment 2 data
 
-        | column name        | description                                     |
-        |--------------------|-------------------------------------------------|
-        | `experiment`       | which experiment (1-4)                          |
-        | `id`               | participant id                                  |
-        | `condition`        | "Confirm" or "Recall"                           |
-        | `phase`            | "learning", "test", or "debrief"                |
-        | `item`             | order in the experiment                         |
-        | `exposure`         | which exposure (1, 2, 3, or "test") of the word |
-        | `word`             | novel word label                                |
-        | `word_type`        | "target", "filler", or "one-shot"               |
-        | `target_referent`  | the referent that co-occurs with the word label |
-        | `selected_object`  | object referent that was clicked                |
-        | `target_selected`  | 1 if target referent is selected, 0 otherwise   |
-        | `selection`        | index of the selection                          |
-        | `input`            | typed input for debrief                         |
+        | column name       | description                                     |
+        |-------------------|-------------------------------------------------|
+        | `experiment`      | which experiment (1-4)                          |
+        | `id`              | participant id                                  |
+        | `condition`       | "Confirm" or "Recall"                           |
+        | `phase`           | "learning", "test", or "debrief"                |
+        | `item`            | order in the experiment                         |
+        | `exposure`        | which exposure (1, 2, 3, or "test") of the word |
+        | `word`            | novel word label                                |
+        | `word_type`       | "target", "filler", or "one-shot"               |
+        | `target_referent` | the referent that co-occurs with the word label |
+        | `selected_object` | object referent that was clicked                |
+        | `target_selected` | 1 if target referent is selected, 0 otherwise   |
+        | `selection`       | index of the selection                          |
+        | `input`           | typed input for debrief                         |
 
     -   `expt1_2_analysis.Rmd` - R Markdown file containing analyses for Experiments 1 and 2
 
@@ -76,19 +76,19 @@ Yue, C.S., LaTourrette, S., Yang, C., & Trueswell, J. (submitted)
 
     -   `expt3_data.csv` - CSV file containing Experiment 3 data
 
-        | column name        | description                                     |
-        |--------------------|-------------------------------------------------|
-        | `experiment`       | which experiment (1-4)                          |
-        | `id`               | participant id                                  |
-        | `condition`        | "Confirm-first" or "Conflict-first"             |
-        | `phase`            | "learning", "test", or "debrief"                |
-        | `item`             | order in the experiment                         |
-        | `exposure`         | which exposure (1, 2, 3, or "test") of the word |
-        | `word`             | novel word label                                |
-        | `word_type`        | "target" or "filler"                            |
-        | `selected_object`  | object referent that was clicked                |
-        | `target_selected`  | 1 if target referent is selected, 0 otherwise   |
-        | `input`            | index of the selection, input for the debrief   |
+        | column name       | description                                     |
+        |-------------------|-------------------------------------------------|
+        | `experiment`      | which experiment (1-4)                          |
+        | `id`              | participant id                                  |
+        | `condition`       | "Confirm-first" or "Conflict-first"             |
+        | `phase`           | "learning", "test", or "debrief"                |
+        | `item`            | order in the experiment                         |
+        | `exposure`        | which exposure (1, 2, 3, or "test") of the word |
+        | `word`            | novel word label                                |
+        | `word_type`       | "target" or "filler"                            |
+        | `selected_object` | object referent that was clicked                |
+        | `target_selected` | 1 if target referent is selected, 0 otherwise   |
+        | `input`           | index of the selection, input for the debrief   |
 
     -   `expt3_analysis.Rmd` - R Markdown file containing analyses for Experiment 3
 
@@ -101,7 +101,7 @@ Yue, C.S., LaTourrette, S., Yang, C., & Trueswell, J. (submitted)
     -   `expt4_data.csv` - CSV file containing Experiment 4 data
 
         | column name | description |
-        |------------------|------------------------------------------------------|
+        |-------------------|-----------------------------------------------------|
         | `experiment` | which experiment (1-4) |
         | `condition` | experimental condition: "same" or "switch" |
         | `id` | participant ID |
