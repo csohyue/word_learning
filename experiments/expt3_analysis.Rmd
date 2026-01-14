@@ -1,0 +1,637 @@
+---
+title: "Expt 3 analysis"
+author: "Christine Soh Yue"
+date: "2025-01-14"
+output: html_document
+---
+
+# Set-up and libraries
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r library, results=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ggpattern)
+library(lme4)
+library(lmerTest)
+library(ggsignif)
+library(penngradlings)
+library(car)
+
+theme_set(theme_pgl_minimal())
+
+# theme_set(theme_minimal())
+
+`%!in%` <- Negate(`%in%`)
+
+c2 <- contr.treatment(2)
+coding2 <- matrix(rep(1/2, 2), ncol=1)
+simple2 <- c2-coding2
+
+expt3_model_order <- c("Human", "MIGHT", "Pursuit", "FUb", "FUb-fixed")
+```
+
+# Models
+
+```{r model_pred, warning=FALSE} 
+expt3_fubg <- tibble(
+  "experiment" = c(3, 3, 3, 3, 3, 3, 3, 3),
+  "condition" = c("Conflict-first", "Conflict-first", "Confirm-first", "Confirm-first",
+                  "Conflict-first", "Conflict-first", "Confirm-first", "Confirm-first"), 
+  "word_type" = c("target", "filler", "target", "filler", 
+                  "target", "filler", "target", "filler"), 
+  "count" = c(1, 1, 1, 1, 1, 1, 1, 1), 
+  "mean_acc" = c(0.344, 0.222, 0.344, 0.222,
+                 0.327, 0.286, 0.215, 0.289), 
+  "sd_acc" = c(0, 0, 0, 0, 0, 0, 0, 0), 
+  "se_acc" = c(0, 0, 0, 0, 0, 0, 0, 0), 
+  "model" = c("FUb", "FUb", "FUb", "FUb", 
+             "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed")
+)
+
+# "condition" "word_type" "count"     "mean_acc"  "sd_acc"    "se"  
+expt3_models <- read_csv("../model_code/results/expt3_models.csv") %>%
+  group_by(condition, experiment, word_type, model) %>%
+  summarise(
+    mean_acc = mean(accuracy),
+    sd_acc = sd(accuracy),
+    count = n(),
+    se_acc = sd_acc / sqrt(count)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    word_type = factor(word_type, levels=c("target", "filler"))
+  ) %>%
+  select(
+    "experiment", "condition", "word_type", "count", "mean_acc", "sd_acc", "se_acc", "model"
+  ) %>%
+  rbind(expt3_fubg) %>%
+  mutate(
+    model = factor(case_when(
+      model == "pursuit" ~ "Pursuit",
+      model == "might" ~ "MIGHT",
+      model == "Human" ~ "Human",
+      TRUE ~ model
+    ), levels = expt3_model_order
+  )
+  ) %>%
+  filter(
+    word_type == "target"
+  ) 
+
+ggplot(expt3_models, aes(x=condition, y=mean_acc, fill=word_type)) +
+  facet_wrap(~model) +
+  geom_col_pattern(position="dodge", pattern="stripe") +
+  ylim(0, 1) +
+  scale_fill_manual(values=
+                      # col2grey(
+                        c("#b2abd2", "#e66101", "#fbd863")
+                        # )
+                    ) +
+  labs(
+      x = "Experimental Condition",
+      y = "Accuracy at test",
+      fill = "Word type"
+    ) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=16,face="bold"),
+        legend.title=element_text(size=16, face="bold"),
+        legend.text=element_text(size=14),
+        title=element_text(size=16,face="bold"),
+        strip.text.x = element_text(size = 14)
+        ) +
+  geom_hline(yintercept=(1/9), linetype='dotted')
+
+```
+
+# Experiment 3
+
+```{r expt3_data}
+expt3_raw_data <- read_csv("expt3_data.csv") %>%
+  mutate(expt = 3)
+
+expt3_excluded_participants <- expt3_raw_data %>%
+  filter(
+    phase == "debrief",
+    (item == "Cheat" & input != "My data is good") | (item == "WriteDown") & grepl("yes", input) | (item == "WriteDown") & grepl("wrote", input)
+  ) %>%
+  select(
+    id, condition, item, input
+  )
+
+expt3_excluded_participants
+
+expt3_data <- expt3_raw_data %>%
+  filter(id %!in% expt3_excluded_participants$id)
+  
+```
+
+```{r expt3_model_training}
+expt3_data %>%
+  filter(phase == "test") %>%
+  group_by(condition, word, word_type) %>%
+  summarise(mean = mean(target_selected), item = min(item))
+```
+
+```{r expt3_counts}
+expt3_data %>%
+  group_by(condition) %>%
+  summarise(
+    count = n_distinct(id)
+  )
+```
+
+## Testing
+```{r expt3_testing}
+expt3_selected_twice_target <- expt3_data %>%
+  filter(
+    phase == "learning",
+    word_type == "target" & exposure == 2
+  ) %>%
+  mutate(
+    index = paste(condition, id, word),
+    selected_twice = target_selected
+  ) %>%
+  select(index, selected_twice)
+
+expt3_selected_twice_filler <- expt3_data %>%
+  filter(
+    phase == "learning",
+    word_type == "filler" & exposure == 2
+  ) %>%
+  mutate(
+    index = paste(condition, id, word),
+    selected_twice = 2
+  ) %>%
+  select(index, selected_twice)
+
+expt3_selected_twice <- expt3_selected_twice_target %>%
+  rbind(expt3_selected_twice_filler)
+
+expt3_testing <- expt3_data %>%
+  filter(
+    phase == "test"
+  ) %>%
+  mutate(
+    accuracy = as.integer(target_selected),
+    condition = factor(condition),
+    index = paste(condition, id, word)
+  ) %>%
+  left_join(expt3_selected_twice)
+
+```
+
+```{r expt3_test_figure}
+expt3_aggr_test <- expt3_testing %>%
+  filter(selected_twice > 0) %>%
+  group_by(
+    condition, word_type
+  ) %>%
+  summarise(
+    count = n(),
+    mean_acc = mean(accuracy),
+    sd_acc = sd(accuracy),
+    se_acc = sd_acc / sqrt(count)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    word_type = factor(word_type, levels = c("target", "filler")),
+    condition = factor(condition, levels = c ("Confirm-first", "Conflict-first"))
+  )
+
+expt3_annotation_df <- data.frame(
+  model = c("Human"),
+  start = c(1),
+  end = c(2),
+  y_pos = 0.70,
+  label = "^ p = 0.056"
+)
+expt3_annotation_df$model <- factor(expt3_annotation_df$model, levels = expt3_model_order)
+
+  
+ggplot(filter(expt3_aggr_test
+              , word_type=="target"
+              ), aes(x=condition, y=mean_acc
+                                    , fill=word_type
+                     , fill = condition
+                                    )) +
+  geom_col(position="dodge") +
+  scale_fill_manual(values=
+                      # col2grey(
+                        c("#b2abd2", "#e66101", "#fbd863")
+                        # )
+                    ) +
+  ylim(0, 1) +
+  labs(
+      x = "Experimental Condition",
+      y = "Accuracy at test",
+      fill = "Word type"
+    ) +
+  geom_errorbar(aes(x=condition, ymin=mean_acc+se_acc,
+                    ymax=mean_acc-se_acc),
+                width=.2,
+                position=position_dodge(.9)) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=16,face="bold"),
+        legend.title=element_text(size=16, face="bold"),
+        legend.text=element_text(size=14),
+        title=element_text(size=16,face="bold"),
+        strip.text.x = element_text(size = 14)
+        ) +
+  # geom_signif(
+  #   data = expt3_annotation_df,
+  #   aes(xmin = start, xmax = end, annotations = label, y_position = y_pos),
+  #   manual = TRUE, # Use 'manual = TRUE' when providing aesthetics via a data frame
+  #   inherit.aes = FALSE # Do not inherit aesthetics from the main ggplot() call
+  #   ) +
+  geom_hline(yintercept=(1/12), linetype='dotted') 
+
+```
+
+### Statistical analysis
+```{r expt3_testing_model}
+expt3_test_model_data <- expt3_testing %>%
+  filter(selected_twice > 0) %>%
+  mutate(
+    condition = factor(condition),
+    word_type = factor(word_type),
+    noun = factor(word),
+    offset = 1/12
+  )
+
+contrasts(expt3_test_model_data$condition) <- simple2
+contrasts(expt3_test_model_data$word_type) <- simple2
+
+expt3_model <- glmer(accuracy ~ condition * word_type + offset(log(offset/(1 - offset))) 
+                     + (1 | id),
+               data=expt3_test_model_data,
+                           family="binomial", control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5)))
+summary(expt3_model)
+```
+
+```{r expt3_model_within_conditions}
+filtered_test <-  filter(expt3_test_model_data, 
+                         word_type == "target", selected_twice == 1
+                         ) 
+expt3_target_model <- glmer(accuracy ~ condition + (1 | id)  + offset(log(offset/(1 - offset))),
+               data=filtered_test, family="binomial")
+expt3_target_model <- glm(accuracy ~ condition  + offset(log(offset/(1 - offset))),
+               data=filtered_test, family="binomial")
+summary(expt3_target_model)
+```
+
+## Aggregate
+```{r figure}
+expt3_test_all <- expt3_aggr_test %>%
+  mutate( model = "Human", part = "human", experiment = 3 ) %>%
+  rbind(mutate(expt3_models, part = "model")) %>%
+  mutate(
+    model = factor(model, levels = expt3_model_order),
+    cond = factor(case_when(
+      condition == "Conflict-first" ~ "Conflict-\nfirst",
+      condition == "Confirm-first" ~ "Confirm-\nfirst"
+    ), levels = c("Confirm-\nfirst", "Conflict-\nfirst"))
+  )
+
+
+expt3_all_plot <- ggplot(filter(expt3_test_all, word_type == "target"), 
+               aes(x=cond, y=mean_acc, 
+                   fill = cond
+                 )) +
+  facet_grid(cols=vars(model)) +
+  geom_col_pattern(aes(pattern = part), position="dodge", pattern_spacing = 0.1) +
+  scale_pattern_manual(values=c("wave", "stripe"), guide="none") +
+  ylim(0, 1) +
+  scale_fill_manual(values=
+                      # col2grey(
+                        c("#5f1c99", "#e66101")
+                        # )
+                    , guide = "none"
+                    ) +
+  labs(
+      x = "Experimental Condition",
+      y = "Accuracy at test",
+      # title = "MBP Accuracy at test",
+      fill = "Word type"
+    ) +
+  geom_errorbar(aes(x=cond, ymin=mean_acc+se_acc,
+                    ymax=mean_acc-se_acc),
+                width=.3,
+                position=position_dodge(.9)) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=16,face="bold"),
+        legend.title=element_text(size=16, face="bold"),
+        legend.text=element_text(size=14),
+        title=element_text(size=16,face="bold"),
+        strip.text.x = element_text(size = 14)
+        ) +
+  geom_signif(
+    data = expt3_annotation_df,
+    aes(xmin = start, xmax = end, annotations = label, y_position = y_pos),
+    manual = TRUE, # Use 'manual = TRUE' when providing aesthetics via a data frame
+    inherit.aes = FALSE # Do not inherit aesthetics from the main ggplot() call
+    ) +
+  geom_hline(yintercept=(1/9), linetype='dotted')
+expt3_all_plot
+```
+## Correlation
+```{r correlation}
+expt3_fubg_by_word <- tibble(
+  "experiment" = c(3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+                   3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+                   3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+                   3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3),
+  "condition" = c("Conflict-first", "Conflict-first", "Conflict-first", 
+                  "Conflict-first", "Conflict-first", "Conflict-first", "Conflict-first", 
+                  "Conflict-first", "Conflict-first", "Conflict-first", 
+                  "Conflict-first", "Conflict-first", "Conflict-first", "Conflict-first", 
+                  "Confirm-first", "Confirm-first", "Confirm-first", 
+                  "Confirm-first", "Confirm-first", "Confirm-first", "Confirm-first", 
+                  "Confirm-first", "Confirm-first", "Confirm-first", 
+                  "Confirm-first", "Confirm-first", "Confirm-first", "Confirm-first", 
+                  "Conflict-first", "Conflict-first", "Conflict-first", 
+                  "Conflict-first", "Conflict-first", "Conflict-first", "Conflict-first", 
+                  "Conflict-first", "Conflict-first", "Conflict-first", 
+                  "Conflict-first", "Conflict-first", "Conflict-first", "Conflict-first", 
+                  "Confirm-first", "Confirm-first", "Confirm-first", 
+                  "Confirm-first", "Confirm-first", "Confirm-first", "Confirm-first", 
+                  "Confirm-first", "Confirm-first", "Confirm-first", 
+                  "Confirm-first", "Confirm-first", "Confirm-first", "Confirm-first"
+                  ), 
+  "word_type" = c("filler", "filler", "filler", "filler", "filler", 
+                  "filler", "filler", "filler", "filler", "filler", 
+                  "target", "target", "target", "target", 
+                  "filler", "filler", "filler", "filler", "filler", 
+                  "filler", "filler", "filler", "filler", "filler", 
+                  "target", "target", "target", "target", 
+                  "filler", "filler", "filler", "filler", "filler", 
+                  "filler", "filler", "filler", "filler", "filler", 
+                  "target", "target", "target", "target", 
+                  "filler", "filler", "filler", "filler", "filler", 
+                  "filler", "filler", "filler", "filler", "filler", 
+                  "target", "target", "target", "target"
+                  ), 
+  "word" = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+             1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+             1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+             1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14),
+  "count" = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+              1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+              1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+              1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1), 
+  "mean_acc" = c(0.265, 0.27, 0.273, 0.274, 0.149, 
+                 0.288, 0.289, 0.293, 0.298, 0.156, 
+                 0.21, 0.423, 0.519, 0.225,
+                 0.317, 0.324, 0.323, 0.329, 0.189, 
+                 0.344, 0.36, 0.324, 0.439, 0.187, 
+                 0.13, 0.266, 0.351, 0.14,
+                0.296, 0.3, 0.303, 0.302, 0.17, 
+                0.327, 0.331, 0.347, 0.314, 0.176, 
+                0.2, 0.399, 0.497, 0.214,
+                 0.294, 0.3, 0.301, 0.305, 0.172, 
+                 0.314, 0.321, 0.301, 0.412, 0.17, 
+                 0.123, 0.261, 0.346, 0.132), 
+  "sd_acc" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 
+  "se_acc" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 
+  "model" = c( 
+             "FUb", "FUb", "FUb", "FUb", "FUb", 
+             "FUb", "FUb", "FUb", "FUb", "FUb", 
+             "FUb", "FUb", "FUb", "FUb", 
+             "FUb", "FUb", "FUb", "FUb", "FUb", 
+             "FUb", "FUb", "FUb", "FUb", "FUb", 
+             "FUb", "FUb", "FUb", "FUb", 
+             "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed",
+             "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed",
+             "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed",
+             "FUb-fixed", "FUb-fixed", 
+             "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed",
+             "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed",
+             "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed",
+             "FUb-fixed", "FUb-fixed")
+)
+
+
+expt3_model_by_word <- read_csv("../model_code/results/expt3_models.csv") %>%
+  group_by(condition, experiment, word, word_type, model) %>%
+  summarise(
+    mean_acc = mean(accuracy),
+    sd_acc = sd(accuracy),
+    count = n(),
+    se_acc = sd_acc / sqrt(count)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    word_s = case_when(
+      word == 1 ~ 11,
+      word == 2 ~ 12,
+      word == 3 ~ 13,
+      word == 4 ~ 14,
+      TRUE ~ word - 4
+    ),
+    word_type = factor(word_type, levels=c("target", "filler")),
+    word = word_s
+  ) %>%
+  select(
+    "experiment", "condition", "word", "word_type", "count", "mean_acc", "sd_acc", "se_acc", "model"
+  ) %>%
+  rbind(expt3_fubg_by_word) %>%
+  mutate(
+    model = factor(case_when(
+      model == "pursuit" ~ "Pursuit",
+      model == "might" ~ "MIGHT",
+      model == "Human" ~ "Human",
+      TRUE ~ model
+    ), levels = expt3_model_order
+  )
+  ) 
+  
+expt3_model_wider <- expt3_model_by_word %>%
+  select(!c(count, sd_acc, se_acc)) %>%
+  pivot_wider(names_from = model, values_from = c(mean_acc))
+  
+
+expt3_by_word <- expt3_testing %>%
+  filter(selected_twice > 0) %>%
+  group_by(
+    experiment, condition, word, word_type
+  ) %>%
+  summarise(
+    mean_acc = mean(accuracy),
+    sd_acc = sd(accuracy),
+    count = n(),
+    se_acc = sd_acc / sqrt(count),
+    word = min(as.integer(item)) - 42
+  ) %>%
+  ungroup() %>%
+  mutate(
+    model = "Human"
+  )
+  
+expt3_sse <- expt3_by_word %>%
+  select(condition, word, word_type, mean_acc) %>%
+  left_join(expt3_model_wider, by=c("word", "condition", "word_type")) %>%
+  mutate(
+    might_squared_error = (MIGHT - mean_acc)**2,
+    fubg_squared_error = (FUb - mean_acc)**2,
+    fubg_fixed_squared_error = (`FUb-fixed` - mean_acc)**2
+  )
+
+expt3_cor <- expt3_sse %>%
+  group_by(
+    condition
+  ) %>%
+  mutate(
+    mean_might = mean(MIGHT),
+    mean_fu = mean(`FUb-fixed`),
+    mean_human = mean(mean_acc)
+  ) %>%
+  ungroup()
+
+fub_test <- cor.test(expt3_cor$mean_acc, expt3_cor$`FUb-fixed`, method="spearman", exact=FALSE)
+fub_test
+might_test <- cor.test(expt3_cor$mean_acc, expt3_cor$MIGHT, method="spearman", exact=FALSE)
+might_test
+fub_tuned_test <- cor.test(expt3_cor$mean_acc, expt3_cor$`FUb`, method="spearman", exact=FALSE)
+fub_tuned_test
+pursuit_test <- cor.test(expt3_cor$mean_acc, expt3_cor$Pursuit, method="spearman", exact=FALSE)
+pursuit_test
+
+expt3_target_cor  <- expt3_sse %>%
+  filter(word_type == "target") %>%
+  group_by(
+    condition
+  ) %>%
+  mutate(
+    mean_might = mean(MIGHT),
+    mean_fu = mean(`FUb-fixed`),
+    mean_human = mean(mean_acc)
+  ) %>%
+  ungroup()
+
+fub_test <- cor.test(expt3_target_cor$mean_acc, expt3_target_cor$`FUb-fixed`, method="spearman", exact=FALSE)
+fub_test
+might_test <- cor.test(expt3_target_cor$mean_acc, expt3_target_cor$MIGHT, method="spearman", exact=FALSE)
+might_test
+fub_tuned_test <- cor.test(expt3_target_cor$mean_acc, expt3_target_cor$`FUb`, method="spearman", exact=FALSE)
+fub_tuned_test
+pursuit_test <- cor.test(expt3_target_cor$mean_acc, expt3_target_cor$Pursuit, method="spearman", exact=FALSE)
+pursuit_test
+
+```
+
+```{r correlation_plot}
+correlation <- ggplot(mutate(rbind(expt3_by_word, 
+                                   filter(expt3_model_by_word,
+                                          model != "Pursuit\n(perfect)")),
+                             model = factor(model, levels = c("Human", "MBP", 
+                                                              "Pursuit", "FUb", 
+                                                              "FUb-fixed")),
+                             word = case_when(
+                               word_type == "Target" ~ word - 10,
+                               TRUE ~ word
+                             )
+                             ), aes(x=word, linetype = model, color = model)) +
+  geom_point(aes(y=mean_acc, shape = model)) +
+  geom_line(aes(y=mean_acc)) +
+  facet_grid(cols = vars(condition, word_type), scale = "free_x", space="free_x") +
+  ylim(0, 1) +
+  scale_x_continuous(breaks=seq(1, 10, by=1))
+
+correlation
+```
+
+```{r cor_me}
+
+expt3_model_me <- expt3_model_wider %>%
+  mutate(
+    item = word + 42
+  )
+
+cor_model <- expt3_test_model_data %>%
+  mutate(
+    item = as.integer(item)
+  ) %>%
+  left_join(expt3_model_me, by=c("item", "condition", "word_type")) %>%
+  filter(selected_twice > 0) %>%
+  mutate(
+    condition = factor(condition),
+    word_type = factor(word_type),
+    noun = factor(word.x),
+    offset = 1/12
+  )
+
+contrasts(cor_model$condition) <- simple2
+contrasts(cor_model$word_type) <- simple2
+
+```
+
+```{r vif}
+
+expt3_target_model <- glmer(accuracy ~ condition * word_type  + (1 + word_type | id)  + (1 | word.x) 
+                              + offset(log(offset/(1 - offset))),
+               data=filter(cor_model, selected_twice > 0
+                         ) , family="binomial")
+summary(expt3_target_model)
+vif(expt3_target_model)
+
+expt3_target_cor_model_might_cond <- glmer(accuracy ~ MIGHT + (condition * word_type)
+                                         + (1 + word_type | id) + (1 | word.x)
+                                + offset(log(offset/(1 - offset))),
+               data=filter(cor_model, selected_twice > 0
+                         ) , family="binomial")
+summary(expt3_target_cor_model_might_cond)
+vif_might <- vif(expt3_target_cor_model_might_cond)
+vif_might
+
+expt3_target_cor_model_might <- glmer(accuracy ~ MIGHT
+                                     + (1 | id) + (1 | word.x)
+                                + offset(log(offset/(1 - offset))),
+               data=filter(cor_model,
+                           selected_twice > 0
+                         ) , family="binomial")
+summary(expt3_target_cor_model_might)
+
+expt3_target_cor_model_fub_cond <- glmer(accuracy ~ `FUb-fixed` + (condition * word_type)
+                                         + (1 | id)  + (1 | word.x) 
+                                + offset(log(offset/(1 - offset))),
+               data=filter(cor_model,
+                           selected_twice > 0
+                         ) , family="binomial")
+summary(expt3_target_cor_model_fub_cond)
+vif_fub <- vif(expt3_target_cor_model_fub_cond)
+vif_fub
+
+expt3_target_cor_model_fub <- glmer(accuracy ~ `FUb-fixed`
+                                         + (1 | id)  + (1 | word.x) 
+                                + offset(log(offset/(1 - offset))),
+               data=filter(cor_model,
+                           selected_twice > 0
+                         ) , family="binomial")
+summary(expt3_target_cor_model_fub)
+
+expt3_target_cor_model_pursuit_cond <- glmer(accuracy ~ `Pursuit` + (condition * word_type)
+                                         + (1 | id)  + (1 | word.x) 
+                                + offset(log(offset/(1 - offset))),
+               data=filter(cor_model,
+                           selected_twice > 0
+                         ) , family="binomial")
+summary(expt3_target_cor_model_pursuit_cond)
+vif_pursuit <- vif(expt3_target_cor_model_pursuit_cond)
+vif_pursuit
+
+expt3_target_cor_model_pursuit <- glmer(accuracy ~ `Pursuit`
+                                         + (1 | id)  + (1 | word.x) 
+                                + offset(log(offset/(1 - offset))),
+               data=filter(cor_model,
+                           selected_twice > 0
+                         ) , family="binomial")
+summary(expt3_target_cor_model_pursuit)
+```

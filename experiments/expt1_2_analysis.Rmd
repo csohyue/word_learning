@@ -1,7 +1,7 @@
 ---
 title: "recall_analysis"
 author: "Christine Soh Yue"
-date: "2023-10-23"
+date: "2025-01-13"
 output: html_document
 ---
 
@@ -20,9 +20,9 @@ library(ggsignif)
 library(TeachingDemos)
 library(penngradlings)
 
-# theme_set(theme_pgl_minimal())
+theme_set(theme_pgl_minimal())
 
-theme_set(theme_minimal())
+# theme_set(theme_minimal())
 
 `%!in%` <- Negate(`%in%`)
 
@@ -92,8 +92,7 @@ expt1_might_pred <- read_csv("../model_code/results/might_expt1_2_results.csv") 
 expt1_model_pred <- expt1_fubg_pred %>%
   rbind(expt1_might_pred)
 
-ggplot(data = filter(expt1_model_pred
-                     #, expt %in% c("MIGHT", "MIGHT\n(larger memory)")
+expt1_model_plot <- ggplot(data = filter(expt1_model_pred
                      ), aes(x=condition, y=mean_acc, fill = word_type_graph)) +
   geom_col_pattern(position="dodge", pattern="stripe") +
   facet_grid(col = vars(expt)) +
@@ -112,6 +111,8 @@ ggplot(data = filter(expt1_model_pred
                 position=position_dodge(.9)) +
   geom_hline(aes(yintercept = 1/9), linetype = "dashed") +
   ylim(0, 1)
+
+expt1_model_plot
 ```
 
 # Experiment 1
@@ -123,10 +124,10 @@ expt1_raw_data <- read_csv("expt1_data.csv") %>%
 expt1_excluded_participants <- expt1_raw_data %>%
   filter(
     phase == "debrief",
-    (PennElementName == "Cheat" & Value != "My data is good") | (PennElementName == "WriteDown") & grepl("yes", Value)
+    (item == "Cheat" & input != "My data is good") | (item == "WriteDown") & grepl("yes", input)
   ) %>%
   select(
-    id, condition, PennElementName, Value
+    id, condition, item, input
   )
 
 expt1_excluded_participants
@@ -147,8 +148,7 @@ expt1_data %>%
 ```{r expt1_by_item}
 expt1_data %>%
   filter(
-    phase == "test", 
-    PennElementName == "test_selector"
+    phase == "test"
   ) %>%
   group_by(condition, item, word_type) %>%
   summarize(acc = mean(target_selected))
@@ -159,18 +159,18 @@ expt1_data %>%
 ```{r expt1_testing_selections}
 expt1_test_selections <- expt1_data %>%
   filter(
-    phase == "test", 
-    PennElementName == "test_selector"
+    phase == "test"
   ) %>%
   mutate(
     accuracy = as.integer(target_selected),
     condition = factor(condition),
-    word_type = factor(word_type, levels = c("Target", "One-shot", "Foil")),
+    word_type = factor(word_type, levels = c("target", "one-shot", "filler")),
     word_type_graph = factor(case_when(
-      word_type == "Foil" ~ "Foil",
-      word_type == "Target" ~ paste("Target:", condition),
+      word_type == "filler" ~ "Filler",
+      word_type == "target" ~ paste("Target:", condition),
+      word_type == "one-shot" ~ "One-shot",
       TRUE ~ word_type
-    ), levels=c("Target: Confirm", "Target: Recall", "One-shot", "Foil"))
+    ), levels=c("Target: Confirm", "Target: Recall", "One-shot", "Filler"))
   )
 
 expt1_by_word <- expt1_test_selections %>%
@@ -204,7 +204,7 @@ expt1_aggr_test_selections <- expt1_test_selections %>%
     expt = "Expt 1"
   )
 
-ggplot(filter(expt1_aggr_test_selections, word_type_graph != "Foil"), aes(x=condition, y=mean_acc, fill=word_type_graph)) +
+expt1_plot <- ggplot(filter(expt1_aggr_test_selections, word_type_graph != "Foil"), aes(x=condition, y=mean_acc, fill=word_type_graph)) +
   geom_col(position="dodge") +
   scale_fill_manual(values=
                       # col2grey(
@@ -233,6 +233,8 @@ ggplot(filter(expt1_aggr_test_selections, word_type_graph != "Foil"), aes(x=cond
               tip_length = 0) +
   geom_hline(yintercept=(1/9), linetype='dotted') 
 
+expt1_plot
+
 ```
 
 ### Statistical analysis
@@ -240,15 +242,15 @@ ggplot(filter(expt1_aggr_test_selections, word_type_graph != "Foil"), aes(x=cond
 expt1_test_model_data <- expt1_test_selections %>%
   mutate(
     condition = factor(condition, levels = c("Recall", "Confirm")),
-    word_type = factor(word_type, levels = c("One-shot", "Target", "Foil")),
+    word_type = factor(word_type, levels = c("one-shot", "target", "filler")),
     noun = factor(item),
     offset = 1/9
   ) %>%
   filter(
-    word_type != "Foil"
+    word_type != "filler"
   ) %>%
   mutate(
-    word_type = factor(word_type, levels = c("One-shot", "Target"))
+    word_type = factor(word_type, levels = c("one-shot", "target"))
   )
 
 
@@ -286,12 +288,12 @@ summary(expt1_confirm_model)
 expt1_filler_model_data <- expt1_test_selections %>%
   mutate(
     condition = factor(condition, levels = c("Recall", "Confirm")),
-    word_type = factor(word_type, levels = c("One-shot", "Target", "Foil")),
+    word_type = factor(word_type, levels = c("one-shot", "target", "filler")),
     noun = factor(item),
     offset = 1/9
   ) %>%
   filter(
-    word_type == "Foil"
+    word_type == "filler"
   )
 
 contrasts(expt1_filler_model_data$condition) <- simple2
@@ -303,350 +305,6 @@ summary(expt1_filler_model)
 
 
 ```
-
-### Test errors
-
-```{r expt1_test_errors}
-expt1_errors <- expt1_test_selections %>%
-  filter(accuracy == 0)
-
-expt1_analyse_errors <- expt1_errors %>%
-  mutate(
-    foil_appeared_once = substring(Value, 5, 7),
-    chose_one_time = as.integer(foil_appeared_once == "1_3")
-  )
-
-expt1_aggr_errors <- expt1_analyse_errors %>%
-  group_by(condition, word_type, word_type_graph) %>%
-  mutate(
-    count = n()
-  ) %>%
-  ungroup() %>%
-  group_by(condition, word_type, word_type_graph, foil_appeared_once, count) %>%
-  summarise(
-    c = n()
-  ) %>%
-  ungroup() %>%
-  mutate(
-    proportion = c/ count,
-    foil_type = factor(case_when(
-      foil_appeared_once == "1_1" ~ "exp1",
-      foil_appeared_once == "1_2" ~ "exp1",
-      foil_appeared_once == "1_3" ~ "exp1",
-      foil_appeared_once == "2_1" & word_type_graph == "Target: Confirm" ~ "exp2",
-      foil_appeared_once == "2_1" ~ "foil",
-      foil_appeared_once == "2_2" & word_type_graph == "Target: Confirm" ~ "exp3",
-      foil_appeared_once == "2_2" ~ "foil",
-      foil_appeared_once == "3_1" ~ "foil",
-      foil_appeared_once == "3_2" ~ "foil",
-      foil_appeared_once == "3_3" ~ "foil"
-    ), levels = c("target", "exp1", "exp2", "exp3", "foil")),
-    foil_count = case_when(
-      foil_appeared_once == "et_" ~ "1",
-      foil_appeared_once == "1_1" ~ "1",
-      foil_appeared_once == "1_2" ~ "2",
-      foil_appeared_once == "1_3" ~ "1",
-      foil_appeared_once == "2_1" & word_type_graph == "Target: Confirm" ~ "1",
-      foil_appeared_once == "2_1" ~ "1",
-      foil_appeared_once == "2_2" & word_type_graph == "Target: Confirm" ~ "1",
-      foil_appeared_once == "2_2" ~ "2",
-      foil_appeared_once == "3_1" & word_type_graph == "Target: Confirm" ~ "1",
-      foil_appeared_once == "3_1" ~ "3",
-      foil_appeared_once == "3_2" & word_type_graph == "Target: Confirm" ~ "2",
-      foil_appeared_once == "3_2" ~ "4",
-      foil_appeared_once == "3_3" & word_type_graph == "Target: Confirm" ~ "3",
-      foil_appeared_once == "3_3" ~ "5"
-      
-    ),
-    foil_count = factor(foil_count, levels=c(5, 4, 3, 2, 1)),
-    foil_type_graph = factor(case_when(
-      foil_type == "foil" ~ "foil",
-      TRUE ~ "co-occurred"
-    ))
-  )
-
-ggplot(expt1_aggr_errors, aes(x=word_type, y=proportion, fill=foil_type
-                                            )) +
-  geom_col_pattern(
-    position = position_fill(reverse = TRUE),
-    aes(pattern = foil_type_graph)
-    ) +
-  scale_pattern_manual(values=c("wave", "stripe")) +
-  facet_grid(cols = vars(condition)) +
-  scale_fill_manual(values=
-                      # col2grey(
-                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
-                        # )
-                    ) +
-  ylim(0, 1) +
-  labs(
-      x = "Experimental Condition",
-      y = "Selection proportion at test",
-      fill = "Object selected",
-      pattern = "Co-occurred\nin exposure"
-    ) +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=16,face="bold"),
-        legend.title=element_text(size=16, face="bold"),
-        legend.text=element_text(size=14),
-        title=element_text(size=18,face="bold"),
-        strip.text.x = element_text(size = 14),
-        ) 
-```
-
-## Learning
-```{r expt1_learning}
-expt1_learning_selections <- expt1_data %>%
-  filter(phase == "learning", PennElementName == "learning_selector") %>%
-  group_by(
-    condition, id, word, word_type
-  ) %>%
-  summarise(
-    num_selections = sum(target_selected),
-    item = min(item),
-    Value = paste0(Value, collapse = ""),
-    selection = paste0(Value, collapse = "")
-  )
-
-expt1_aggr_learning_selections <-  expt1_data %>%
-  filter(phase == "learning", PennElementName == "learning_selector") %>%
-  group_by(
-    condition, word_type, exposure
-  ) %>%
-  summarise(
-    n = n(),
-    mean = mean(target_selected),
-    sd = sd(target_selected),
-    se = sd / sqrt(n)
-  )
-
-ggplot(data = filter(expt1_aggr_learning_selections, word_type == "Target"), aes(x = exposure, y = mean, fill = condition)) +
-  geom_col(position="dodge") +
-  scale_fill_manual(values=
-                      # col2grey(
-                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
-                        # )
-                    ) +
-  facet_grid(cols = vars(condition)) +
-  geom_errorbar(aes(x=exposure, ymin=mean+se,
-                    ymax=mean-se),
-                width=.2,
-                position=position_dodge(.9)) +
-  guides(fill = "none")
-```
-
-### Typed responses
-```{r expt1_typed_responses}
-expt1_typed_responses <- expt1_data %>%
-  filter(
-    phase == "learning",
-    PennElementName == "input"
-  ) 
-
-expt1_typed_responses %>%
-  filter(
-    selected_object != "0"
-  ) %>%
-  group_by(word_type, 
-           condition) %>%
-  mutate(
-    total = n()
-  ) %>%
-  ungroup() %>%
-  group_by(typed_matches_guess_super, 
-           word_type,
-           condition, total) %>%
-  summarise(
-    count = n()
-  ) %>%
-  ungroup() %>%
-  mutate(
-    proportion = count / total,
-    matches_guess = case_when(
-      typed_matches_guess_super == 0 ~ "no match",
-      typed_matches_guess_super == 1 ~ "exact match",
-      typed_matches_guess_super == 2 ~ "superordinate")
-    ,
-    word_type = factor(word_type, levels=c("Target", "One-shot", "Foil")),
-    word_type_graph = factor(case_when(
-      word_type == "Target" & condition == "Confirm" ~ "Target: Confirm",
-      word_type == "Target" & condition == "Recall" ~ "Target: Recall",
-      TRUE ~ word_type
-    ), levels=c("Target: Confirm", "Target: Recall", "One-shot", "Foil"))
-  ) %>%
-  select(
-    condition, word_type_graph, 
-    matches_guess,
-    proportion, total 
-  ) %>%
-  pivot_wider(
-    names_from = matches_guess,
-    values_from = proportion
-  ) %>%
-  mutate(
-    `superordinate match` = superordinate + `exact match`
-  ) %>%
-  select(!superordinate)
-```
-
-```{r expt1_typed_learning}
-expt1_typed_learning <- expt1_typed_responses %>%
-  mutate(
-    correct_typed= case_when(
-      edited_value != "other" ~ as.integer(edited_value==target_typed_edited),
-      TRUE ~ 0
-      ),
-    correct_type_superordinate = case_when(
-      superordinate != "other" & superordinate == target_superordinate_typed ~ 1,
-      TRUE ~ 0
-    )
-  ) %>%
-  mutate(
-    index = paste(id, word)
-  )
-
-expt1_first <- expt1_typed_learning %>%
-  filter(exposure == 1, word_type != "Foil")
-
-expt1_got_first_correct <- expt1_typed_learning %>%
-  filter(exposure == 1, edited_value != "other", typed_matches_guess_super > 0,
-         word_type != "Foil"
-         )
-
-expt1_aggr_typed_learning <- expt1_typed_learning %>%
-  filter(index %in% expt1_got_first_correct$index) %>%
-  group_by(word_type, 
-           exposure,
-           condition) %>%
-  summarise(
-    n = n(),
-    mean = mean(correct_typed),
-    sd = sd(correct_typed),
-    se = sd / sqrt(n)
-  ) %>%
-  ungroup() %>%
-  mutate(
-    input = "typed"
-  ) %>%
-  filter(
-    word_type == "Target"
-  ) %>%
-  select(
-    condition, word_type, exposure, #item, word,
-    n, mean, sd, se, input
-  ) %>%
-  filter(input == "typed")
-
-ggplot(data = filter(expt1_aggr_typed_learning, input == "typed"), aes(x=exposure, y=mean,
-                                                  fill = condition)) +
-  geom_col(position = "dodge") +
-  facet_wrap(~condition) + 
-  labs(
-      x = "Exposure",
-      y = "Accuracy in typed response",
-      fill = "Word type"
-    ) +
-  scale_fill_manual(values=
-                      # col2grey(
-                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
-                        # )
-                    ) +
-  scale_pattern_manual(values = c("stripe", "wave")) + 
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=16,face="bold"),
-        legend.title=element_text(size=16, face="bold"),
-        legend.text=element_text(size=14),
-        title=element_text(size=16,face="bold"),
-        strip.text.x = element_text(size = 14),
-        ) +
-  geom_errorbar(aes(x=exposure, ymin=mean+se,
-                    ymax=mean-se),
-                width=.2,
-                position=position_dodge(.9)) +
-  guides(fill = "none")
-
-```
-
-
-Are participants selecting form their initial hypotheses from Exposure 1?
-
-```{r expt1_first_hypotheses}
-expt1_first_hypotheses <- expt1_typed_learning %>%
-  filter(
-    item %in% c(3, 4, 6, 7, 9, 10, 12, 13, 1, 2, 15, 16, 17, 19)
-  ) %>%
-  mutate(
-    index = paste(id, word),
-    hyp_id = paste(id, selected_object),
-    hyp_typed_id = paste(id, edited_value),
-    hyp_superordinate_typed_id = paste(id, superordinate)
-  ) %>%
-  select(id, hyp_id, hyp_typed_id, hyp_superordinate_typed_id)
-```
-
-```{r typed_guesses_from_hypotheses}
-expt1_learning_typed_from_hyp <- expt1_typed_learning %>%
-  mutate(
-    selection_index = paste(id, selected_object),
-    selected_item_from_hyp = case_when(
-      selected_object != "0" ~ as.integer(selection_index %in% expt1_first_hypotheses$hyp_id),
-      TRUE ~ 1
-    ),
-    exact_typed_index = paste(id, edited_value),
-    typed_from_hyp = as.integer(exact_typed_index %in% expt1_first_hypotheses$hyp_typed_id)
-  )
-
-expt1_learning_hypotheses <- expt1_learning_typed_from_hyp %>%
-  group_by(word_type, exposure, condition) %>%
-  summarise(
-    mean_selection_from_hyp = mean(selected_item_from_hyp, na.rm=TRUE),
-    mean_typed_from_hyp = mean(typed_from_hyp),
-    sd_selection_from_hyp = sd(selected_item_from_hyp, na.rm=TRUE),
-    sd_typed_from_hyp = sd(typed_from_hyp),
-    count = n(),
-    se_typed = sd_typed_from_hyp / sqrt(count)
-  ) %>%
-  ungroup() %>%
-  mutate(
-    mean_selection_from_hyp = case_when(
-      is.na(mean_selection_from_hyp) ~ 0,
-      TRUE ~ mean_selection_from_hyp
-    ),
-    word_type_graph = case_when(
-      word_type == "Target" & condition == "Recall" ~ "Target: Recall",
-      word_type == "Target" & condition == "Confirm" ~ "Target: Confirm",
-      TRUE ~ word_type
-    )
-  ) %>%
-  filter(
-    word_type == "Target"
-  )
-
-ggplot(data = expt1_learning_hypotheses, aes(x=exposure, y=mean_typed_from_hyp,
-                                                  fill = word_type_graph)) +
-  geom_col(position="dodge") +
-  labs(
-      x = "Exposure",
-      y = "Proportion of the typed\nresponse from Exp 1",
-      fill = "Word type"
-    ) +
-  scale_fill_manual(values=
-                      # col2grey(
-                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
-                        # )
-                    ) +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=16,face="bold"),
-        legend.title=element_text(size=16, face="bold"),
-        legend.text=element_text(size=14),
-        title=element_text(size=16,face="bold"),
-        strip.text.x = element_text(size = 14)
-        ) 
-
-```
-
-
-
 # Experiment 2
 
 
@@ -657,7 +315,7 @@ expt2_raw_data <- read_csv("expt2_data.csv") %>%
 expt2_excluded_participants <- expt2_raw_data %>%
   filter(
     phase == "debrief",
-    (PennElementName == "Cheat" & Value != "My data is good") | (PennElementName == "WriteDown") & grepl("yes", Value)
+    (item == "Cheat" & input != "My data is good") | (item == "WriteDown") & grepl("yes", input)
   ) 
 
 expt2_excluded_participants
@@ -679,18 +337,17 @@ expt2_data %>%
 expt2_test_selections <- expt2_data %>%
   filter(
     phase == "test", 
-    PennElementName == "test_selector",
-    # word_type != "Foil"
   ) %>%
   mutate(
     accuracy = as.integer(target_selected),
     condition = factor(condition),
-    word_type = factor(word_type, levels = c("Target", "One-shot", "Foil")),
+    word_type = factor(word_type, levels = c("target", "one-shot", "filler")),
     word_type_graph = factor(case_when(
-      word_type == "Foil" ~ "Foil",
-      word_type == "Target" ~ paste("Target:", condition),
+      word_type == "filler" ~ "Filler",
+      word_type == "target" ~ paste("Target:", condition),
+      word_type == "one-shot" ~ "One-shot",
       TRUE ~ word_type
-    ), levels=c("Target: Confirm", "Target: Recall", "One-shot", "Foil"))
+    ), levels=c("Target: Confirm", "Target: Recall", "One-shot", "Filler"))
   )
 
 expt2_aggr_test_selections <- expt2_test_selections %>%
@@ -743,10 +400,10 @@ expt2_testing_plot
 ### Statistical analysis
 ```{r expt2_testing_model}
 expt2_test_model_data <- expt2_test_selections %>%
-  filter(word_type != "Foil") %>%
+  filter(word_type != "filler") %>%
   mutate(
     condition = factor(condition, levels = c("Recall", "Confirm")),
-    word_type = factor(word_type, levels = c("One-shot", "Target")),
+    word_type = factor(word_type, levels = c("one-shot", "target")),
     noun = factor(item),
     offset = 1/9
   )
@@ -777,12 +434,12 @@ summary(expt2_confirm_model)
 expt2_filler_model_data <- expt2_test_selections %>%
   mutate(
     condition = factor(condition, levels = c("Recall", "Confirm")),
-    word_type = factor(word_type, levels = c("One-shot", "Target", "Foil")),
+    word_type = factor(word_type, levels = c("one-shot", "target", "filler")),
     noun = factor(item),
     offset = 1/9
   ) %>%
   filter(
-    word_type == "Foil"
+    word_type == "filler"
   )
 
 contrasts(expt2_filler_model_data$condition) <- simple2
@@ -795,211 +452,59 @@ summary(expt2_filler_model)
 
 ```
 
-### Test errors
 
-```{r expt2_test_errors}
-expt2_errors <- expt2_test_selections %>%
-  filter(accuracy == 0)
-
-expt2_analyse_errors <- expt2_errors %>%
-  mutate(
-    foil_appeared_once = substring(Value, 5, 7),
-    chose_one_time = as.integer(foil_appeared_once == "1_3")
-  )
-
-expt2_aggr_errors <- expt2_analyse_errors %>%
-  group_by(condition, word_type, word_type_graph) %>%
-  mutate(
-    count = n()
-  ) %>%
-  ungroup() %>%
-  group_by(condition, word_type, word_type_graph, foil_appeared_once, count) %>%
-  summarise(
-    c = n()
-  ) %>%
-  ungroup() %>%
-  mutate(
-    proportion = c/ count,
-    foil_type = factor(case_when(
-      foil_appeared_once == "1_1" ~ "exp1",
-      foil_appeared_once == "1_2" ~ "exp1",
-      foil_appeared_once == "1_3" ~ "exp1",
-      foil_appeared_once == "2_1" & word_type_graph == "Target: Confirm" ~ "exp2",
-      foil_appeared_once == "2_1" ~ "foil",
-      foil_appeared_once == "2_2" & word_type_graph == "Target: Confirm" ~ "exp3",
-      foil_appeared_once == "2_2" ~ "foil",
-      foil_appeared_once == "3_1" ~ "foil",
-      foil_appeared_once == "3_2" ~ "foil",
-      foil_appeared_once == "3_3" ~ "foil"
-    ), levels = c("target", "exp1", "exp2", "exp3", "foil")),
-    foil_count = case_when(
-      foil_appeared_once == "et_" ~ "1",
-      foil_appeared_once == "1_1" ~ "1",
-      foil_appeared_once == "1_2" ~ "2",
-      foil_appeared_once == "1_3" ~ "1",
-      foil_appeared_once == "2_1" & word_type_graph == "Target: Confirm" ~ "1",
-      foil_appeared_once == "2_1" ~ "1",
-      foil_appeared_once == "2_2" & word_type_graph == "Target: Confirm" ~ "1",
-      foil_appeared_once == "2_2" ~ "2",
-      foil_appeared_once == "3_1" & word_type_graph == "Target: Confirm" ~ "1",
-      foil_appeared_once == "3_1" ~ "3",
-      foil_appeared_once == "3_2" & word_type_graph == "Target: Confirm" ~ "2",
-      foil_appeared_once == "3_2" ~ "4",
-      foil_appeared_once == "3_3" & word_type_graph == "Target: Confirm" ~ "3",
-      foil_appeared_once == "3_3" ~ "5"
-      
-    ),
-    foil_count = factor(foil_count, levels=c(5, 4, 3, 2, 1)),
-    foil_type_graph = factor(case_when(
-      foil_type == "foil" ~ "foil",
-      TRUE ~ "co-occurred"
-    ))
-  )
-
-
-
-expt2_error_plot <- ggplot(expt2_aggr_errors, aes(x=word_type, y=proportion, fill=foil_type
-                                            # , alpha=foil_type
-                                            )) +
-                                              # , color=ID)) +
-  geom_col_pattern(
-    position = position_fill(reverse = TRUE),
-    aes(pattern = foil_type_graph)
-    # position="dodge"
-    ) +
-  scale_pattern_manual(values=c("wave", "stripe")) +
-  facet_grid(cols = vars(condition)) +
-  scale_fill_manual(values=
-                      # col2grey(
-                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
-                        # )
-                    ) +
-  ylim(0, 1) +
-  labs(
-      x = "Experimental Condition",
-      y = "Selection proportion at test",
-      # title = "Expt 2a: Error selections at test",
-      fill = "Object selected",
-      pattern = "Co-occurred\nin exposure"
-      # alpha = "Separate foil objects"
-    ) +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=16,face="bold"),
-        legend.title=element_text(size=16, face="bold"),
-        legend.text=element_text(size=14),
-        title=element_text(size=18,face="bold"),
-        strip.text.x = element_text(size = 14),
-        # legend.position = "None"
-        ) 
-
-expt2_error_plot
-```
-
-
-
-
-
-## Learning
-```{r expt2_learning}
-expt2_learning_selections <- expt2_data %>%
-  filter(phase == "learning", PennElementName == "learning_selector") %>%
-  group_by(
-    condition, id, word, word_type
-  ) %>%
-  summarise(
-    num_selections = sum(target_selected),
-    item = min(item),
-    Value = paste0(Value, collapse = ""),
-    selection = paste0(Value, collapse = "")
-  )
-
-
-
-expt2_aggr_learning_selections <-  expt2_data %>%
-  filter(phase == "learning", PennElementName == "learning_selector") %>%
-  group_by(
-    condition, word_type, exposure
-  ) %>%
-  summarise(
-    n = n(),
-    mean = mean(target_selected),
-    sd = sd(target_selected),
-    sem = sd / sqrt(n)
-  )
-
-ggplot(data = filter(expt2_aggr_learning_selections, word_type == "Target"), aes(x = exposure, y = mean, fill = condition)) +
-  geom_col(position="dodge") +
-  scale_fill_manual(values=
-                      # col2grey(
-                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
-                        # )
-                    ) +
-  facet_grid(cols = vars(condition))
-```
 
 
 # Compare expt
 
 
 ```{r expt1_expt2_model}
-recall_data <- expt2_test_selections %>%
+expt1_2_recall_data <- expt2_test_selections %>%
   mutate(expt = 2) %>%
   rbind(select(expt1_test_selections, all_of(colnames(expt2_test_selections)))) %>%
-  filter(condition == "Recall", word_type != "Foil") %>%
+  filter(condition == "Recall", word_type != "filler") %>%
   mutate(
     expt = factor(expt),
-    word_type = factor(word_type, levels = c("One-shot", "Target")),
+    word_type = factor(word_type, levels = c("one-shot", "target")),
     noun = factor(item),
     id = factor(id),
     offset = 1/9
   )
 
-recall_model <- glmer(accuracy ~ expt * word_type + offset(qlogis(offset)) + (1 | id),
-               data=recall_data, family="binomial", 
+expt1_2_recall_model <- glmer(accuracy ~ expt * word_type + offset(qlogis(offset)) + (1 | id),
+               data=expt1_2_recall_data, family="binomial", 
                control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5)))
 
-summary(recall_model)
+summary(expt1_2_recall_model)
 ```
 
 
 ```{r both_model}
-all_test <- expt2_test_selections %>%
+expt1_2_all_test <- expt2_test_selections %>%
   mutate(expt = 2) %>%
   rbind(select(expt1_test_selections, all_of(colnames(expt2_test_selections)))) %>%
-  filter(word_type != "Foil") %>%
+  filter(word_type != "filler") %>%
   mutate(
     expt = factor(expt),
-    word_type = factor(word_type, levels = c("One-shot", "Target")),
+    word_type = factor(word_type, levels = c("one-shot", "target")),
     noun = factor(item),
     id = factor(id)
   )
 
-all_model <- glmer(accuracy ~ expt * word_type * condition + (1 | id),
-               data=all_test, family="binomial", 
+expt1_2_all_model <- glmer(accuracy ~ expt * word_type * condition + (1 | id),
+               data=expt1_2_all_test, family="binomial", 
                control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5)))
 
-summary(all_model)
+summary(expt1_2_all_model)
 ```
 
 ```{r aggregate}
-expt1_dud <- tibble(
-  "condition" = c("Confirm", "Confirm", "Confirm", "Retrieval", "Retrieval", "Retrieval"
-                  ),
-  "word_type_graph" = c("Target: Confirm", "One-shot", "Filler", "Target: Retrieval", "One-shot", "Filler"
-                        ),
-  "count" = c(1, 1, 1, 1, 1, 1),
-  "mean_acc" = c(0, 0, 0, 0, 0, 0),
-  "sd_acc" = c(0, 0, 0, 0, 0, 0),
-  "se" = c(0, 0, 0, 0, 0, 0),
-  "expt" = c("", "", "", "", "", "")
-)
-
-all_results <- expt1_aggr_test_selections %>%
+expt1_2_results <- expt1_aggr_test_selections %>%
   rbind(expt2_aggr_test_selections) %>%
   mutate(
     participants = "human", 
     word_type_graph = factor(case_when(
-      word_type_graph == "Foil" ~ "Filler",
+      word_type_graph == "filler" ~ "Filler",
       word_type_graph == "Target: Recall" ~ "Target: Retrieval",
       TRUE ~ word_type_graph
     ), levels = c("Target: Confirm", "Target: Retrieval", "One-shot", "Filler")),
@@ -1026,7 +531,7 @@ all_results <- expt1_aggr_test_selections %>%
     ))
   )
 
-expt1_paper_plot <- ggplot(filter(all_results), aes(x=condition, y=mean_acc, fill=word_type_graph)) +
+expt1_2_paper_plot <- ggplot(filter(expt1_2_results), aes(x=condition, y=mean_acc, fill=word_type_graph)) +
   geom_col_pattern(aes(pattern = participants), position="dodge") +
   scale_pattern_manual(values = c("wave", "stripe"), guide="none") +
   ylim(0, 1) +
@@ -1035,7 +540,7 @@ expt1_paper_plot <- ggplot(filter(all_results), aes(x=condition, y=mean_acc, fil
       y = "Accuracy at test",
       fill = "Word type"
     ) +
-  facet_wrap(vars(expt), nrow = 2) +
+  facet_wrap(vars(expt), nrow = 2, scales="free_x") +
   geom_errorbar(aes(x=condition, ymin=mean_acc+se,
                     ymax=mean_acc-se),
                 width=.2,
@@ -1057,5 +562,5 @@ expt1_paper_plot <- ggplot(filter(all_results), aes(x=condition, y=mean_acc, fil
                     ) +
   geom_hline(yintercept=(1/9), linetype='dotted') 
 
-expt1_paper_plot
+expt1_2_paper_plot
 ```

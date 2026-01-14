@@ -1,0 +1,8 @@
+Preregistrations: https://researchbox.org/5358
+	code: OPDBFN
+
+Experiment 1 pcibex: https://farm.pcibex.net/r/eSLaMx/
+Experiment 2 pcibex: https://farm.pcibex.net/r/NmJlMy/
+Experiment 3 pcibex: https://farm.pcibex.net/r/PZfjWd/
+Experiment 4 pcibex (same): https://farm.pcibex.net/r/sCaWIY/
+Experiment 4 pcibex (switch): https://farm.pcibex.net/r/NJHOiy/

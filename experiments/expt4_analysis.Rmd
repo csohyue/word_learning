@@ -1,7 +1,7 @@
 ---
 title: "expt4_analysis"
 author: "Christine Soh Yue"
-date: "2025-10-07"
+date: "2025-01-14"
 output: html_document
 ---
 
@@ -44,8 +44,8 @@ expt4_models <- read_csv("../model_code/results/might_expt4_results.csv") %>%
       substr(word, 1, 1) %in% c("p", "P") ~ "preflush"
     ),
     word_type = case_when(
-      block == "flush" ~ "Filler", 
-      TRUE ~ "Target"
+      block == "flush" ~ "filler", 
+      TRUE ~ "target"
     )
   )
   
@@ -85,8 +85,8 @@ expt4_fubg <- tibble(
                   "pre-flush", "flush", "post-flush", 
                   "pre-flush", "flush", "post-flush", 
                   "pre-flush", "flush", "post-flush"), 
-  "word_type" = c("Target", "Filler", "Target", "Target", "Filler", "Target",
-                  "Target", "Filler", "Target", "Target", "Filler", "Target"),
+  "word_type" = c("target", "filler", "target", "target", "filler", "target",
+                  "target", "filler", "target", "target", "filler", "target"),
   "count" = c(1, 1, 1, 1, 1, 1, 
               1, 1, 1, 1, 1, 1), 
   "mean_acc" = c(0.601, 0.602, 0.587, 0.362, 0.382, 0.42,
@@ -124,12 +124,12 @@ expt4_model_aggr_test <- expt4_model_test  %>%
 
 ```{r expt4_data}
 expt4_data <- read_csv("expt4_data.csv") %>%
-  mutate(expt = 4, id = redcap_id, model = "Human")
+  mutate(expt = 4, model = "Human")
 ```
 
 ```{r expt4_model_training}
 expt4_by_item <- expt4_data %>%
-  filter(phase == "testing") %>%
+  filter(phase == "test") %>%
   group_by(condition, word, word_i, word_type) %>%
   summarise(mean = mean(accuracy))
 
@@ -150,7 +150,7 @@ expt4_data %>%
 ```{r expt4_testing}
 expt4_testing <- expt4_data %>%
   filter(
-    phase == "testing"
+    phase == "test"
   ) %>%
   mutate(
     num_selections = as.integer(correct1) + as.integer(correct2) + 
@@ -159,9 +159,9 @@ expt4_testing <- expt4_data %>%
 
 expt4_filtered_test <- expt4_testing %>%
   filter(
-    (condition == "same" & word_type == "Target" & num_selections > 2) | 
-      (condition == "switch" & word_type == "Target" & num_selections >= 1) |
-      (word_type == "Filler" & num_selections >= 1) 
+    (condition == "same" & word_type == "target" & num_selections > 2) | 
+      (condition == "switch" & word_type == "target" & num_selections >= 1) |
+      (word_type == "filler" & num_selections >= 1) 
   )
 ```
 
@@ -178,7 +178,7 @@ expt4_aggr_test <- expt4_filtered_test %>%
   ) %>%
   ungroup() %>%
   mutate(
-    word_type = factor(word_type, levels = c("Target", "Filler")),
+    word_type = factor(word_type, levels = c("target", "filler")),
     block = factor(block, levels = c("pre-flush", "post-flush"))
   ) 
 
@@ -198,7 +198,7 @@ expt4_test_all <- expt4_aggr_test %>%
     )
   )
 
-ggplot(filter(expt4_test_all, word_type == "Target"), 
+ggplot(filter(expt4_test_all, word_type == "target"), 
        aes(x=condition, y=mean_acc, fill=block
                                     )) +
   geom_col_pattern(aes(pattern = participant), position="dodge") +
@@ -217,9 +217,7 @@ ggplot(filter(expt4_test_all, word_type == "Target"),
                 position=position_dodge(.9)) +
   scale_fill_manual(values=
                       # col2grey(
-                        c(#5f1c99", 
-                          "#b2abd2",
-                          # "#fbd863",
+                        c("#b2abd2",
                           "#e66101")
                         # )
                     # , guide = "none"
@@ -239,13 +237,13 @@ ggplot(filter(expt4_test_all, word_type == "Target"),
 ### Statistical analysis
 ```{r expt4_testing_model}
 expt4_test_model_data <- expt4_filtered_test %>%
-  filter(word_type == "Target") %>%
+  filter(word_type == "target") %>%
   mutate(
     condition = factor(condition, levels = c("switch", "same")),
     block = factor(block, levels = c("pre-flush", "post-flush")),
     noun = factor(word),
     offset = 1/12,
-    id = factor(paste(redcap_id, condition))
+    id = factor(paste(id, condition))
   ) 
 
 expt4_test_model_data %>% group_by(condition, block, num_selections) %>%summarise(count = n())
@@ -263,7 +261,7 @@ summary(expt4_model)
 ```{r expt4_learning}
 expt4_data %>%
   filter(
-    phase == "testing"
+    phase == "test"
   ) %>%
   mutate(
     num_selections = as.integer(correct1) + as.integer(correct2) + 

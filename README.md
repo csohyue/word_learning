@@ -1,126 +1,129 @@
-
 # word learning models
 
-Christine Soh Yue, Sandy LaTourrette, Charles Yang, and John Trueswell
+Contains the code and data for the paper:
 
-## experiments
+Yue, C.S., LaTourrette, S., Yang, C., & Trueswell, J. (submitted)
 
-`experiments` is a folder containing the experimental data and analysis
-files (Section 4)
+## Contents
 
-## simulations
+-   `model_code` - folder containing the computational models (Section 2). Read this directory's README to see how to run the models
 
-`simulations` is a folder containing the analysis code for the
-experimental simulations (Section 3)
+    -   `models` - folder containing the code for the MIGHT model (`might_learner.py`), the Pursuit model (`pursuit_learner.py`), and the Familiarity Uncertainty biased Global model (`kachergis.Rmd`), adopted from George Kachergis' (github)[<https://github.com/kachergis/word_learning_models/tree/master>].
 
-## model_code
+    -   `data` - a folder containing the data `txt` files for the MIGHT and Pursuit models to run on
 
-`model_code` is a folder containing the computational models. Go into
-this directory to run a word learning model.
+    -   `results` - a folder containing the model output for the MIGHT and Pursuit models
 
-### models
+    -   `run_cswl.py` - main file for running MIGHT and Pursuit model code
 
-`models` contains the code for the MIGHT model (`might_learner.py`), the
-Pursuit model (`pursuit_learner.py`), and the Familiarity Uncertainty
-biased Global model (`kachergis.Rmd`), adopted from George Kachergis'
-(github)[<https://github.com/kachergis/word_learning_models/tree/master>].
+-   `simulations` - folder containing the analysis code for the experimental simulations (Section 3)
 
-The MIGHT model is built on the `MemoryLearner class`, and the
-`learningspace` is defined in `learning_space.py` (I used this to apply
-the memory component on different learning strategies in the first
-iteration of the paper). `library.py` contains some functions that are
-helpful for running the model.
+    -   `simulation_analyses.Rmd` - model simulation analysis
 
-To run MIGHT or Pursuit, put the input data into the `data` directory,
-as described below.
+-   `experiments` - folder containing the experimental data and analysis files (Section 4)
 
-The FUbG model takes in the data within an R file. Linking the two would
-be ideal, but there are some complications. Look at
-`model_code/models/fubg_simulations.Rmd` for an example.
+    -   `expt_links.txt` - text file containing links to pre-registrations and to experiments
 
-### data
+    -   `expt1_prereg.pdf` – pdf version of Experiment 1 preregistration
 
-`data` is a folder containing the data `txt` files.
+    -   `expt1_data.csv` – CSV file containing Experiment 1 data
 
-Each directory in `data` corresponds to an experiment. If there are
-different conditions within the experiment, then the `{CONDITION_NAME}`
-prefixes each of the training and testing files. To run most simply,
-have a training and testing file for each condition with the following
-naming standard: `{CONDITION_NAME}_training.txt` and
-`{CONDITION_NAME}_testing.txt`.
+        | column name | description |
+        |---------------------------|----------------------------------------------------|
+        | `experiment` | which experiment (1-4) |
+        | `id` | participant id |
+        | `condition` | "Confirm" or "Recall" |
+        | `phase` | "learning", "test", or "debrief" |
+        | `item` | order in the experiment |
+        | `exposure` | which exposure (1, 2, 3, or "test") of the word |
+        | `word` | novel word label |
+        | `word_type` | "target", "filler", or "one-shot" |
+        | `target_referent` | the referent that co-occurs with the word label |
+        | `selected_object` | object referent that was clicked |
+        | `target_selected` | 1 if target referent is selected, 0 otherwise |
+        | `selection` | index of the selection |
+        | `input` | typed input |
+        | `edited_input` | cleaned input |
+        | `selection_matches_guess` | 1 if the participant's clicked and typed responses match, 0 otherwise |
+        | `typed_accuracy` | 1 if typed response matches the target referent, 0 otherwise |
+        | `typed_superordinate_accuracy` | 1 if typed response matches the superordinate category of the target referent, 0 otherwise |
 
-The format for the input files is as follows – each exposure gets two
-lines: the labels and the referents, followed by an empty line
+    -   `expt2_prereg.pdf` - pdf version of Experiment 2 preregistration
 
-```         
-LABEL1 LABEL2
-REFERENT1 REFERENT2 REFERENT3
+    -   `expt2_data.csv` - CSV file containing Experiment 2 data
 
-LABEL2 LABEL3
-REFERENT3 REFERENT2 REFERENT1
-```
+        | column name        | description                                     |
+        |--------------------|-------------------------------------------------|
+        | `experiment`       | which experiment (1-4)                          |
+        | `id`               | participant id                                  |
+        | `condition`        | "Confirm" or "Recall"                           |
+        | `phase`            | "learning", "test", or "debrief"                |
+        | `item`             | order in the experiment                         |
+        | `exposure`         | which exposure (1, 2, 3, or "test") of the word |
+        | `word`             | novel word label                                |
+        | `word_type`        | "target", "filler", or "one-shot"               |
+        | `target_referent`  | the referent that co-occurs with the word label |
+        | `selected_object`  | object referent that was clicked                |
+        | `target_selected`  | 1 if target referent is selected, 0 otherwise   |
+        | `selection`        | index of the selection                          |
+        | `input`            | typed input for debrief                         |
 
-If the label for the target referent of a word is not exactly the same
-as the word label, you will need a `gold.txt` file that represents the
-gold standard of label-referent mappings. Each line represents a
-mapping: label referent (with a space between them).
+    -   `expt1_2_analysis.Rmd` - R Markdown file containing analyses for Experiments 1 and 2
 
-```         
-LABEL1 REFERENT1
-LABEL2 REFERENT2
-```
+    -   `expt1_2_analysis.html` - html knitted version of analyses
 
-If there are different learning conditions and just one test, you can
-have a single testing file, which you'll pass in as an optional
-argument. If there is a different combination of learning and testing
-files, you can pass in a `paths.txt` file indicating the
-training-testing pairs for each condition (look at the `yurovsky` data
-for an example of both `paths.txt` and `gold.txt`).
+    -   `expt3_prereg.pdf` - pdf version of Experiment 3 preregistration
 
-### run_cswl.py
+    -   `expt3_data.csv` - CSV file containing Experiment 3 data
 
-`run_cswl.py` is the main function that you need.
+        | column name        | description                                     |
+        |--------------------|-------------------------------------------------|
+        | `experiment`       | which experiment (1-4)                          |
+        | `id`               | participant id                                  |
+        | `condition`        | "Confirm-first" or "Conflict-first"             |
+        | `phase`            | "learning", "test", or "debrief"                |
+        | `item`             | order in the experiment                         |
+        | `exposure`         | which exposure (1, 2, 3, or "test") of the word |
+        | `word`             | novel word label                                |
+        | `word_type`        | "target" or "filler"                            |
+        | `selected_object`  | object referent that was clicked                |
+        | `target_selected`  | 1 if target referent is selected, 0 otherwise   |
+        | `input`            | index of the selection, input for the debrief   |
 
-usage:
-`computational models for cswl [-h] [-cond CONDITION] [-paths PATHS_TO_DATA] [-test TESTING_PATH] [-m MEMORY] [-c COUNT] [-gold GOLD] [-rep REPETITIONS] [-rand] model experiment`
+    -   `expt3_analysis.Rmd` - R Markdown file containing analyses for Experiment 3
 
-run word learning
+    -   `expt3_analysis.html` - html knitted version of analyses
 
-positional arguments:
+    -   `expt4_switch_prereg.pdf` - pdf version of Experiment 4 preregistration for switch condition
 
--   `model` model (might or pursuit)
+    -   `expt4_same_prereg.pdf` - pdf version of Experiment 4 preregistration for same condition
 
--   `experiment` experiment (should be the directory name in 'data')
+    -   `expt4_data.csv` - CSV file containing Experiment 4 data
 
-optional arguments:
+        | column name | description |
+        |------------------|------------------------------------------------------|
+        | `experiment` | which experiment (1-4) |
+        | `condition` | experimental condition: "same" or "switch" |
+        | `id` | participant ID |
+        | `phase` | "learning", "test", or "debrief" |
+        | `block` | "pre-flush", "post-flush", or "flush" for words |
+        | `word_type` | "filler" or "target" |
+        | `item` | order of the trial in experiment |
+        | `word` | novel word |
+        | `word_i` | index of novel word item |
+        | `exposure` | which exposure of the word (1, 2, 3, or test) |
+        | `accuracy` | 1 if selected target referent, 0 if did not select target referent |
+        | `selection` | object index selected (from pcibex) |
+        | `correct1` | 1 if selected target referent at exposure 1 else 0 |
+        | `correct2` | 1 if selected target referent at exposure 2 else 0 |
+        | `correct3` | 1 if selected target referent at exposure 3 else 0 |
+        | `value` | object referent selected |
+        | `value1` | object referent selected at exposure 1 |
+        | `value2` | object referent selected at exposure 2 |
+        | `value3` | object referent selected at exposure 3 |
 
--   `-h`, `--help` show this help message and exit
+    -   `expt4_analysis.Rmd` - R Markdown file containing analyses for Experiment 4
 
--   `-cond`, `--condition` condition (should prefix training & testing
-    files)
+    -   `expt4_analysis.html` - html knitted version of analyses
 
--   `-paths`, `--paths_to_data` name of txt document with training,
-    testing pairs
-
--   `-test`, `--testing_path` name of testing file if it doesn't match
-    training (default matches training)
-
--   `-m`, `--memory` size of learning-space for MIGHT (default 7)
-
--   `-c`, `--count` number of subjects (default 300)
-
--   `-gold`, `--gold` name of file with gold standard (default (LABEL,
-    label))
-
--   `-rep`, `--repetitions` Number of repetitions, default 1
-
--   `-rand`, `--randomize` if should be randomized, default FALSE
-
-For example:
-
-```         
-python run_cswl.py might expt1_2 # Runs the MIGHT model on Expt 1/2
-python run_cswl.py might expt1_2 -m 11 # Runs the MIGHT model on Expt 1/2 with larger memory 
-python run_cswl.py pursuit expt1_2 # Runs the Pursuit model on Expt 1/2
-python run_cswl.py might yurovsky -paths paths.txt -gold gold.txt
-```
+#### 

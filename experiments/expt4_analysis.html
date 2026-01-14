@@ -11,7 +11,7 @@
 
 <meta name="author" content="Christine Soh Yue" />
 
-<meta name="date" content="2025-10-07" />
+<meta name="date" content="2025-01-14" />
 
 <title>expt4_analysis</title>
 
@@ -352,7 +352,7 @@ display: none;
 
 <h1 class="title toc-ignore">expt4_analysis</h1>
 <h4 class="author">Christine Soh Yue</h4>
-<h4 class="date">2025-10-07</h4>
+<h4 class="date">2025-01-14</h4>
 
 </div>
 
@@ -390,8 +390,8 @@ expt4_model_order &lt;- c(&quot;Human&quot;, &quot;MIGHT&quot;, &quot;Pursuit&qu
       substr(word, 1, 1) %in% c(&quot;p&quot;, &quot;P&quot;) ~ &quot;preflush&quot;
     ),
     word_type = case_when(
-      block == &quot;flush&quot; ~ &quot;Filler&quot;, 
-      TRUE ~ &quot;Target&quot;
+      block == &quot;flush&quot; ~ &quot;filler&quot;, 
+      TRUE ~ &quot;target&quot;
     )
   )</code></pre>
 <pre><code>## Rows: 43200 Columns: 12
@@ -447,8 +447,8 @@ expt4_fubg &lt;- tibble(
                   &quot;pre-flush&quot;, &quot;flush&quot;, &quot;post-flush&quot;, 
                   &quot;pre-flush&quot;, &quot;flush&quot;, &quot;post-flush&quot;, 
                   &quot;pre-flush&quot;, &quot;flush&quot;, &quot;post-flush&quot;), 
-  &quot;word_type&quot; = c(&quot;Target&quot;, &quot;Filler&quot;, &quot;Target&quot;, &quot;Target&quot;, &quot;Filler&quot;, &quot;Target&quot;,
-                  &quot;Target&quot;, &quot;Filler&quot;, &quot;Target&quot;, &quot;Target&quot;, &quot;Filler&quot;, &quot;Target&quot;),
+  &quot;word_type&quot; = c(&quot;target&quot;, &quot;filler&quot;, &quot;target&quot;, &quot;target&quot;, &quot;filler&quot;, &quot;target&quot;,
+                  &quot;target&quot;, &quot;filler&quot;, &quot;target&quot;, &quot;target&quot;, &quot;filler&quot;, &quot;target&quot;),
   &quot;count&quot; = c(1, 1, 1, 1, 1, 1, 
               1, 1, 1, 1, 1, 1), 
   &quot;mean_acc&quot; = c(0.601, 0.602, 0.587, 0.362, 0.382, 0.42,
@@ -486,17 +486,17 @@ expt4_model_aggr_test &lt;- expt4_model_test  %&gt;%
 <div id="experiment-4" class="section level1">
 <h1>Experiment 4</h1>
 <pre class="r"><code>expt4_data &lt;- read_csv(&quot;expt4_data.csv&quot;) %&gt;%
-  mutate(expt = 4, id = redcap_id, model = &quot;Human&quot;)</code></pre>
-<pre><code>## Rows: 6156 Columns: 18
+  mutate(expt = 4, model = &quot;Human&quot;)</code></pre>
+<pre><code>## Rows: 6156 Columns: 19
 ## ── Column specification ────────────────────────────────────────────────────────
 ## Delimiter: &quot;,&quot;
-## chr (10): condition, phase, block, word_type, word, selection, value, value1...
-## dbl  (8): redcap_id, Item, word_i, exposure, accuracy, correct1, correct2, c...
+## chr (11): condition, phase, block, word_type, item, word, selection, value, ...
+## dbl  (8): experiment, id, word_i, exposure, accuracy, correct1, correct2, co...
 ## 
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
 <pre class="r"><code>expt4_by_item &lt;- expt4_data %&gt;%
-  filter(phase == &quot;testing&quot;) %&gt;%
+  filter(phase == &quot;test&quot;) %&gt;%
   group_by(condition, word, word_i, word_type) %&gt;%
   summarise(mean = mean(accuracy))</code></pre>
 <pre><code>## `summarise()` has grouped output by &#39;condition&#39;, &#39;word&#39;, &#39;word_i&#39;. You can
@@ -519,7 +519,7 @@ expt4_model_aggr_test &lt;- expt4_model_test  %&gt;%
 <h2>Testing</h2>
 <pre class="r"><code>expt4_testing &lt;- expt4_data %&gt;%
   filter(
-    phase == &quot;testing&quot;
+    phase == &quot;test&quot;
   ) %&gt;%
   mutate(
     num_selections = as.integer(correct1) + as.integer(correct2) + 
@@ -528,9 +528,9 @@ expt4_model_aggr_test &lt;- expt4_model_test  %&gt;%
 
 expt4_filtered_test &lt;- expt4_testing %&gt;%
   filter(
-    (condition == &quot;same&quot; &amp; word_type == &quot;Target&quot; &amp; num_selections &gt; 2) | 
-      (condition == &quot;switch&quot; &amp; word_type == &quot;Target&quot; &amp; num_selections &gt;= 1) |
-      (word_type == &quot;Filler&quot; &amp; num_selections &gt;= 1) 
+    (condition == &quot;same&quot; &amp; word_type == &quot;target&quot; &amp; num_selections &gt; 2) | 
+      (condition == &quot;switch&quot; &amp; word_type == &quot;target&quot; &amp; num_selections &gt;= 1) |
+      (word_type == &quot;filler&quot; &amp; num_selections &gt;= 1) 
   )</code></pre>
 <pre class="r"><code>expt4_aggr_test &lt;- expt4_filtered_test %&gt;%
   group_by(
@@ -544,7 +544,7 @@ expt4_filtered_test &lt;- expt4_testing %&gt;%
   ) %&gt;%
   ungroup() %&gt;%
   mutate(
-    word_type = factor(word_type, levels = c(&quot;Target&quot;, &quot;Filler&quot;)),
+    word_type = factor(word_type, levels = c(&quot;target&quot;, &quot;filler&quot;)),
     block = factor(block, levels = c(&quot;pre-flush&quot;, &quot;post-flush&quot;))
   ) </code></pre>
 <pre><code>## `summarise()` has grouped output by &#39;condition&#39;, &#39;word_type&#39;. You can override
@@ -565,7 +565,7 @@ expt4_filtered_test &lt;- expt4_testing %&gt;%
     )
   )
 
-ggplot(filter(expt4_test_all, word_type == &quot;Target&quot;), 
+ggplot(filter(expt4_test_all, word_type == &quot;target&quot;), 
        aes(x=condition, y=mean_acc, fill=block
                                     )) +
   geom_col_pattern(aes(pattern = participant), position=&quot;dodge&quot;) +
@@ -584,9 +584,7 @@ ggplot(filter(expt4_test_all, word_type == &quot;Target&quot;),
                 position=position_dodge(.9)) +
   scale_fill_manual(values=
                       # col2grey(
-                        c(#5f1c99&quot;, 
-                          &quot;#b2abd2&quot;,
-                          # &quot;#fbd863&quot;,
+                        c(&quot;#b2abd2&quot;,
                           &quot;#e66101&quot;)
                         # )
                     # , guide = &quot;none&quot;
@@ -604,13 +602,13 @@ ggplot(filter(expt4_test_all, word_type == &quot;Target&quot;),
 <div id="statistical-analysis" class="section level3">
 <h3>Statistical analysis</h3>
 <pre class="r"><code>expt4_test_model_data &lt;- expt4_filtered_test %&gt;%
-  filter(word_type == &quot;Target&quot;) %&gt;%
+  filter(word_type == &quot;target&quot;) %&gt;%
   mutate(
     condition = factor(condition, levels = c(&quot;switch&quot;, &quot;same&quot;)),
     block = factor(block, levels = c(&quot;pre-flush&quot;, &quot;post-flush&quot;)),
     noun = factor(word),
     offset = 1/12,
-    id = factor(paste(redcap_id, condition))
+    id = factor(paste(id, condition))
   ) 
 
 expt4_test_model_data %&gt;% group_by(condition, block, num_selections) %&gt;%summarise(count = n())</code></pre>
@@ -676,7 +674,7 @@ summary(expt4_model)</code></pre>
 <h2>Learning</h2>
 <pre class="r"><code>expt4_data %&gt;%
   filter(
-    phase == &quot;testing&quot;
+    phase == &quot;test&quot;
   ) %&gt;%
   mutate(
     num_selections = as.integer(correct1) + as.integer(correct2) + 
