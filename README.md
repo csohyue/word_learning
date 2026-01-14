@@ -18,7 +18,7 @@ Yue, C.S., LaTourrette, S., Yang, C., & Trueswell, J. (submitted)
 
 -   `simulations` - folder containing the analysis code for the experimental simulations (Section 3)
 
-    -   `simulation_analyses.Rmd` - model simulation analysis
+    -   `simulation_analyses.html` - model simulation analysis
 
 -   `experiments` - folder containing the experimental data and analysis files (Section 4)
 
