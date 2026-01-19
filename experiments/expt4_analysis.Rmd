@@ -232,6 +232,9 @@ ggplot(filter(expt4_test_all, word_type == "target"),
         ) +
   geom_hline(yintercept=(1/9), linetype='dotted') 
 
+
+ggsave("expt4_test.png", width=8, height=4, units="in", dpi="print")
+
 ```
 
 ### Statistical analysis

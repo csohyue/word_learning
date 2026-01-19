@@ -29,7 +29,7 @@ Yue, LaTourrette, Yang, & Trueswell (submitted)
     -   `expt1_data.csv` – CSV file containing Experiment 1 data
 
         | column name | description |
-        |-------------------------|-----------------------------------------------|
+        |----|----|
         | `experiment` | which experiment (1-4) |
         | `id` | participant id |
         | `condition` | "Confirm" or "Recall" |
@@ -101,7 +101,7 @@ Yue, LaTourrette, Yang, & Trueswell (submitted)
     -   `expt4_data.csv` - CSV file containing Experiment 4 data
 
         | column name | description |
-        |-------------------|-----------------------------------------------------|
+        |----|----|
         | `experiment` | which experiment (1-4) |
         | `condition` | experimental condition: "same" or "switch" |
         | `id` | participant ID |

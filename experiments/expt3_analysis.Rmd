@@ -335,6 +335,8 @@ expt3_all_plot <- ggplot(filter(expt3_test_all, word_type == "target"),
     ) +
   geom_hline(yintercept=(1/9), linetype='dotted')
 expt3_all_plot
+
+ggsave("expt3_test.png", width=10, height=4, units="in", dpi="print")
 ```
 ## Correlation
 ```{r correlation}
