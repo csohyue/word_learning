@@ -19,9 +19,9 @@ library(lmerTest)
 library(ggsignif)
 library(penngradlings)
 
-theme_set(theme_pgl_minimal())
+# theme_set(theme_pgl_minimal())
 
-# theme_set(theme_minimal())
+theme_set(theme_minimal())
 
 `%!in%` <- Negate(`%in%`)
 
@@ -181,6 +181,8 @@ expt4_aggr_test <- expt4_filtered_test %>%
     word_type = factor(word_type, levels = c("target", "filler")),
     block = factor(block, levels = c("pre-flush", "post-flush"))
   ) 
+
+expt4_aggr_test
 
 expt4_test_all <- expt4_aggr_test %>%
   mutate(
