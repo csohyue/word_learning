@@ -255,20 +255,11 @@ ggplot(filter(expt3_aggr_test
 expt3_test_model_data <- expt3_testing %>%
   filter(selected_twice > 0) %>%
   mutate(
-    condition = factor(condition),
+    condition = factor(condition, levels=c("Conflict-first", "Confirm-first")),
     word_type = factor(word_type),
     noun = factor(word),
     offset = 1/12
   )
-
-contrasts(expt3_test_model_data$condition) <- simple2
-contrasts(expt3_test_model_data$word_type) <- simple2
-
-expt3_model <- glmer(accuracy ~ condition * word_type + offset(log(offset/(1 - offset))) 
-                     + (1 | id),
-               data=expt3_test_model_data,
-                           family="binomial", control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5)))
-summary(expt3_model)
 ```
 
 ```{r expt3_model_within_conditions}
@@ -476,57 +467,6 @@ expt3_by_word <- expt3_testing %>%
   mutate(
     model = "Human"
   )
-  
-expt3_sse <- expt3_by_word %>%
-  select(condition, word, word_type, mean_acc) %>%
-  left_join(expt3_model_wider, by=c("word", "condition", "word_type")) %>%
-  mutate(
-    might_squared_error = (MIGHT - mean_acc)**2,
-    fubg_squared_error = (FUb - mean_acc)**2,
-    fubg_fixed_squared_error = (`FUb-fixed` - mean_acc)**2
-  )
-
-expt3_cor <- expt3_sse %>%
-  group_by(
-    condition
-  ) %>%
-  mutate(
-    mean_might = mean(MIGHT),
-    mean_fu = mean(`FUb-fixed`),
-    mean_human = mean(mean_acc)
-  ) %>%
-  ungroup()
-
-fub_test <- cor.test(expt3_cor$mean_acc, expt3_cor$`FUb-fixed`, method="spearman", exact=FALSE)
-fub_test
-might_test <- cor.test(expt3_cor$mean_acc, expt3_cor$MIGHT, method="spearman", exact=FALSE)
-might_test
-fub_tuned_test <- cor.test(expt3_cor$mean_acc, expt3_cor$`FUb`, method="spearman", exact=FALSE)
-fub_tuned_test
-pursuit_test <- cor.test(expt3_cor$mean_acc, expt3_cor$Pursuit, method="spearman", exact=FALSE)
-pursuit_test
-
-expt3_target_cor  <- expt3_sse %>%
-  filter(word_type == "target") %>%
-  group_by(
-    condition
-  ) %>%
-  mutate(
-    mean_might = mean(MIGHT),
-    mean_fu = mean(`FUb-fixed`),
-    mean_human = mean(mean_acc)
-  ) %>%
-  ungroup()
-
-fub_test <- cor.test(expt3_target_cor$mean_acc, expt3_target_cor$`FUb-fixed`, method="spearman", exact=FALSE)
-fub_test
-might_test <- cor.test(expt3_target_cor$mean_acc, expt3_target_cor$MIGHT, method="spearman", exact=FALSE)
-might_test
-fub_tuned_test <- cor.test(expt3_target_cor$mean_acc, expt3_target_cor$`FUb`, method="spearman", exact=FALSE)
-fub_tuned_test
-pursuit_test <- cor.test(expt3_target_cor$mean_acc, expt3_target_cor$Pursuit, method="spearman", exact=FALSE)
-pursuit_test
-
 ```
 
 ```{r correlation_plot}
