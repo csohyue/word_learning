@@ -19,9 +19,9 @@ library(lmerTest)
 library(ggsignif)
 library(penngradlings)
 
-# theme_set(theme_pgl_minimal())
+theme_set(theme_pgl_minimal())
 
-theme_set(theme_minimal())
+# theme_set(theme_minimal())
 
 `%!in%` <- Negate(`%in%`)
 
