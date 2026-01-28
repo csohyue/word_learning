@@ -1,5 +1,5 @@
 ---
-title: "recall_analysis"
+title: "Expt 1, Expt 2 Analysis"
 author: "Christine Soh Yue"
 date: "2025-01-13"
 output: html_document
@@ -20,9 +20,9 @@ library(ggsignif)
 library(TeachingDemos)
 library(penngradlings)
 
-theme_set(theme_pgl_minimal())
+# theme_set(theme_pgl_minimal())
 
-# theme_set(theme_minimal())
+theme_set(theme_minimal())
 
 `%!in%` <- Negate(`%in%`)
 
@@ -137,6 +137,7 @@ expt1_data <- expt1_raw_data %>%
   
 ```
 
+Counts of the participants
 ```{r expt1_counts}
 expt1_data %>%
   group_by(condition) %>%
@@ -145,6 +146,7 @@ expt1_data %>%
   )
 ```
 
+For tuning FUb
 ```{r expt1_by_item}
 expt1_data %>%
   filter(
@@ -155,7 +157,108 @@ expt1_data %>%
   
 ```
 
-## Testing
+## Results of Human Performance: Retrieval of Hypotheses
+
+```{r expt1_learning_retrieval}
+expt1_data %>%
+  filter(
+    phase == "learning"
+  ) %>%
+  group_by(condition) %>%
+  mutate(
+    total = n()
+  ) %>%
+  ungroup() %>%
+  group_by(selection_matches_guess, 
+           condition, total) %>%
+  summarise(
+    count = n()
+  ) %>%
+  ungroup() %>%
+  mutate(
+    proportion = count / total
+  ) %>%
+  select(
+    condition, 
+    selection_matches_guess,
+    proportion, total 
+  ) %>%
+  pivot_wider(
+    names_from = selection_matches_guess,
+    values_from = proportion
+  ) %>%
+  mutate(
+    `superordinate match` = superordinate + `exact match`
+  ) %>%
+  select(!superordinate)
+```
+
+
+```{r expt1_learning_retrieval_exp2}
+expt1_exp2_accuracy <- expt1_data %>%
+  filter(
+    phase == "learning", exposure == 2
+  ) %>%
+  group_by(condition, word_type) %>%
+  summarise(
+    count = n(),
+    mean_accuracy = mean(typed_accuracy),
+    sd_accuracy = sd(typed_accuracy),
+    se_accuracy = sd_accuracy/sqrt(count)
+  )
+```
+Are participants selecting form their initial hypotheses from Exposure 1?
+
+```{r expt1_first_hypotheses}
+expt1_first_hypotheses <- expt1_data %>%
+  filter(
+    phase == "learning",
+    item %in% c(3, 4, 6, 7, 9, 10, 12, 13, 1, 2, 15, 16, 17, 19)
+  ) %>%
+  mutate(
+    index = paste(id, word),
+    hyp_id = paste(id, selected_object),
+    hyp_typed_id = paste(id, edited_input)
+  ) %>%
+  select(id, hyp_id, hyp_typed_id)
+
+expt1_learning_typed_from_hyp <- expt1_data %>%
+  filter(
+    phase == "learning"
+  ) %>%
+  mutate(
+    selection_index = paste(id, selected_object),
+    selected_item_from_hyp = case_when(
+      selected_object != "0" ~ as.integer(selection_index %in% expt1_first_hypotheses$hyp_id),
+      TRUE ~ 1
+    ),
+    exact_typed_index = paste(id, edited_input),
+    typed_from_hyp = as.integer(exact_typed_index %in% expt1_first_hypotheses$hyp_typed_id)
+  )
+
+ expt1_learning_typed_from_hyp %>%
+  group_by(word_type, exposure, condition) %>%
+  summarise(
+    mean_typed_from_hyp = mean(typed_from_hyp),
+    sd_typed_from_hyp = sd(typed_from_hyp),
+    count = n(),
+    se_typed = sd_typed_from_hyp / sqrt(count)
+  ) %>%
+  ungroup() %>%
+  filter(
+    word_type == "target"
+  ) %>%
+   filter(exposure == 2) %>%
+   left_join(filter(expt1_exp2_accuracy, word_type == "target")) %>%
+   mutate(
+     from_hyp_but_incorrect = mean_typed_from_hyp - mean_accuracy
+   ) %>%
+   select(
+     exposure, condition, from_hyp_but_incorrect, mean_typed_from_hyp, mean_accuracy
+   )
+```
+
+## Results of Human Performance: Performance at Test
 ```{r expt1_testing_selections}
 expt1_test_selections <- expt1_data %>%
   filter(
@@ -566,7 +669,7 @@ expt1_2_paper_plot
 ggsave("expt1_test.png", width=8, height=6, units="in", dpi="print")
 ```
 
-# Expt 1 and 2 Learning
+# Learning supplementary
 ## Expt 1 learning
 ```{r expt1_learning}
 expt1_learning_selections <- expt1_data %>%
@@ -610,15 +713,10 @@ ggplot(data = filter(expt1_aggr_learning_selections, word_type == "target"), aes
 
 ### Typed responses
 ```{r expt1_typed_responses}
-expt1_typed_responses <- expt1_data %>%
+expt1_data %>%
   filter(
     phase == "learning"
-  ) 
-
-expt1_typed_responses %>%
-  filter(
-    selected_object != "0"
-  ) %>%
+  )  %>%
   group_by(word_type, 
            condition) %>%
   mutate(
@@ -661,7 +759,10 @@ expt1_typed_responses %>%
 ```
 
 ```{r expt1_typed_learning}
-expt1_typed_learning <- expt1_typed_responses %>%
+expt1_typed_learning <- expt1_data %>%
+  filter(
+    phase == "learning"
+  )  %>%
   mutate(
     index = paste(id, word)
   )
@@ -722,81 +823,7 @@ ggplot(data = filter(expt1_aggr_typed_learning), aes(x=exposure, y=mean,
 ```
 
 
-Are participants selecting form their initial hypotheses from Exposure 1?
 
-```{r expt1_first_hypotheses}
-expt1_first_hypotheses <- expt1_typed_learning %>%
-  filter(
-    item %in% c(3, 4, 6, 7, 9, 10, 12, 13, 1, 2, 15, 16, 17, 19)
-  ) %>%
-  mutate(
-    index = paste(id, word),
-    hyp_id = paste(id, selected_object),
-    hyp_typed_id = paste(id, edited_input)
-  ) %>%
-  select(id, hyp_id, hyp_typed_id)
-```
-
-```{r typed_guesses_from_hypotheses}
-expt1_learning_typed_from_hyp <- expt1_typed_learning %>%
-  mutate(
-    selection_index = paste(id, selected_object),
-    selected_item_from_hyp = case_when(
-      selected_object != "0" ~ as.integer(selection_index %in% expt1_first_hypotheses$hyp_id),
-      TRUE ~ 1
-    ),
-    exact_typed_index = paste(id, edited_input),
-    typed_from_hyp = as.integer(exact_typed_index %in% expt1_first_hypotheses$hyp_typed_id)
-  )
-
-expt1_learning_hypotheses <- expt1_learning_typed_from_hyp %>%
-  group_by(word_type, exposure, condition) %>%
-  summarise(
-    mean_selection_from_hyp = mean(selected_item_from_hyp, na.rm=TRUE),
-    mean_typed_from_hyp = mean(typed_from_hyp),
-    sd_selection_from_hyp = sd(selected_item_from_hyp, na.rm=TRUE),
-    sd_typed_from_hyp = sd(typed_from_hyp),
-    count = n(),
-    se_typed = sd_typed_from_hyp / sqrt(count)
-  ) %>%
-  ungroup() %>%
-  filter(
-    word_type == "target"
-  ) %>%
-  mutate(
-    mean_selection_from_hyp = case_when(
-      is.na(mean_selection_from_hyp) ~ 0,
-      TRUE ~ mean_selection_from_hyp
-    ),
-    word_type_graph = case_when(
-      condition == "Recall" ~ "Target: Recall",
-      condition == "Confirm" ~ "Target: Confirm",
-      TRUE ~ word_type
-    )
-  )
-
-ggplot(data = expt1_learning_hypotheses, aes(x=exposure, y=mean_typed_from_hyp,
-                                                  fill = word_type_graph)) +
-  geom_col(position="dodge") +
-  labs(
-      x = "Exposure",
-      y = "Proportion of the typed\nresponse from Exp 1",
-      fill = "Word type"
-    ) +
-  scale_fill_manual(values=
-                      # col2grey(
-                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
-                        # )
-                    ) +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=16,face="bold"),
-        legend.title=element_text(size=16, face="bold"),
-        legend.text=element_text(size=14),
-        title=element_text(size=16,face="bold"),
-        strip.text.x = element_text(size = 14)
-        ) 
-
-```
 
 ```{r expt_exp2_predict_test}
 expt1_correct_exp2 <- expt1_typed_learning %>%
@@ -810,10 +837,10 @@ expt1_exp2_predict_test <- expt1_test_selections %>%
   filter(word_type == "target") %>%
   mutate(
     index = paste(id, word),
-    exp2_correct = case_when(
+    exp2_correct = factor(case_when(
       index %in% expt1_correct_exp2$index ~ "Exposure 2 correct",
       TRUE ~ "Exposure 2 incorrect"
-    ),
+    )),
     condition = factor(condition, levels = c("Recall", "Confirm")),
     noun = factor(item),
     offset = 1/9
