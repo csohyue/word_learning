@@ -6,7 +6,7 @@
 
 ## File Structure {#file-structure}
 
-#### models
+### /models
 
 `models` contains the code for the MIGHT model (`might_learner.py`), the Pursuit model (`pursuit_learner.py`), and the Familiarity Uncertainty biased Global model (`kachergis.Rmd`), adopted from George Kachergis' (github)[<https://github.com/kachergis/word_learning_models/tree/master>].
 
@@ -16,17 +16,29 @@ To run MIGHT or Pursuit, put the input data into the `data` directory, as descri
 
 The FUbG model takes in the data within an R file. Look at `model_code/models/fubg_simulations.Rmd` for an example.
 
-#### data
+### /data
 
 `data` is a folder containing the data `txt` files.
 
-### results
+### /results
 
 The result files of the MIGHT and Pursuit learners
 
-#### run_cswl.py
+### run_cswl.py
 
 `run_cswl.py` is the main function that you need to run the MIGHT and PURSUIT models.
+
+### run_expt3.py
+
+`run_expt3.py` is the script to run Expt 3 in the paper. This uses the dependent selections seen by participants.
+
+### run_yu_smith.py
+
+`run_yu_smith.py` is the script to run the Yu & Smith 2007 simulation in the paper.
+
+### tune_pursuit.py
+
+`tune_pursuit.py` is the script to tune the hyperparameters of Pursuit.
 
 ## Setup {#setup}
 
