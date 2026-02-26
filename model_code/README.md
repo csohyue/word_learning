@@ -113,8 +113,8 @@ optional arguments:
 For example:
 
 ```         
-python run_cswl.py might expt1_2 # Runs the MIGHT model on Expt 1/2
-python run_cswl.py might expt1_2 -m 11 # Runs the MIGHT model on Expt 1/2 with larger memory 
+python run_cswl.py might expt1_2 -test testing.txt # Runs the MIGHT model on Expt 1/2
+python run_cswl.py might expt1_2 -m 11 -test testing.txt # Runs the MIGHT model on Expt 1/2 with larger memory 
 python run_cswl.py pursuit expt1_2 -test testing.txt # Runs the Pursuit model on Expt 1/2
 python run_cswl.py might yurovsky -paths paths.txt -gold gold.txt
 ```
