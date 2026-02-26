@@ -2,7 +2,7 @@
 
 -   [File structure](#file-structure)
 -   [Setup](#setup)
-- [Run models](#run-model)
+-   [Run models](#run-models)
 
 ## File Structure {#file-structure}
 
@@ -28,17 +28,19 @@ The result files of the MIGHT and Pursuit learners
 
 `run_cswl.py` is the main function that you need to run the MIGHT and PURSUIT models.
 
-## Setup
+## Setup {#setup}
+
 If you feel comfortable using github:
-```
+
+```         
 $ git clone git@github.com:csohyue/word_learning.git
 $ cd word_learning/model_code
 ```
 
-Otherwise, feel free to download the files from github as a zip file and unzip it.
-Find your way into the directory.
+Otherwise, feel free to download the files from github as a zip file and unzip it. Find your way into the directory.
 
 ### Create your input data files
+
 Each directory in `data` corresponds to an experiment. If there are different conditions within the experiment, then the `{CONDITION_NAME}` prefixes each of the training and testing files. To run most simply, have a training and testing file for each condition with the following naming standard: `{CONDITION_NAME}_training.txt` and `{CONDITION_NAME}_testing.txt`.
 
 The format for the input files is as follows – each exposure gets two lines: the labels and the referents, followed by an empty line.
@@ -60,8 +62,8 @@ LABEL2 REFERENT2
 
 If there are different learning conditions and just one test, you can have a single testing file, which you'll pass in as an optional argument. If there is a different combination of learning and testing files, you can pass in a `paths.txt` file indicating the training-testing pairs for each condition (look at the `yurovsky` data for an example of both `paths.txt` and `gold.txt`).
 
+## Run models {#run-models}
 
-## Run models
 The model is run from the `model_code/` directory.
 
 `run_cswl.py` is the script you can run from the command line.
