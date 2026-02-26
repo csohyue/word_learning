@@ -1,3 +1,11 @@
+# Table of Contents
+
+-   [File structure](#file-structure)
+-   [Setup](#setup)
+- [Run models](#run-model)
+
+## File Structure {#file-structure}
+
 #### models
 
 `models` contains the code for the MIGHT model (`might_learner.py`), the Pursuit model (`pursuit_learner.py`), and the Familiarity Uncertainty biased Global model (`kachergis.Rmd`), adopted from George Kachergis' (github)[<https://github.com/kachergis/word_learning_models/tree/master>].
@@ -6,12 +14,31 @@ The MIGHT model is built on the `MemoryLearner class`, and the `learningspace` i
 
 To run MIGHT or Pursuit, put the input data into the `data` directory, as described below.
 
-The FUbG model takes in the data within an R file. Linking the two would be ideal, but there are some complications. Look at `model_code/models/fubg_simulations.Rmd` for an example.
+The FUbG model takes in the data within an R file. Look at `model_code/models/fubg_simulations.Rmd` for an example.
 
 #### data
 
 `data` is a folder containing the data `txt` files.
 
+### results
+
+The result files of the MIGHT and Pursuit learners
+
+#### run_cswl.py
+
+`run_cswl.py` is the main function that you need to run the MIGHT and PURSUIT models.
+
+## Setup
+If you feel comfortable using github:
+```
+$ git clone git@github.com:csohyue/word_learning.git
+$ cd word_learning/model_code
+```
+
+Otherwise, feel free to download the files from github as a zip file and unzip it.
+Find your way into the directory.
+
+### Create your input data files
 Each directory in `data` corresponds to an experiment. If there are different conditions within the experiment, then the `{CONDITION_NAME}` prefixes each of the training and testing files. To run most simply, have a training and testing file for each condition with the following naming standard: `{CONDITION_NAME}_training.txt` and `{CONDITION_NAME}_testing.txt`.
 
 The format for the input files is as follows – each exposure gets two lines: the labels and the referents, followed by an empty line.
@@ -33,13 +60,11 @@ LABEL2 REFERENT2
 
 If there are different learning conditions and just one test, you can have a single testing file, which you'll pass in as an optional argument. If there is a different combination of learning and testing files, you can pass in a `paths.txt` file indicating the training-testing pairs for each condition (look at the `yurovsky` data for an example of both `paths.txt` and `gold.txt`).
 
-### results
 
-The result files of the MIGHT and Pursuit learners
+## Run models
+The model is run from the `model_code/` directory.
 
-#### run_cswl.py
-
-`run_cswl.py` is the main function that you need.
+`run_cswl.py` is the script you can run from the command line.
 
 usage: `computational models for cswl [-h] [-cond CONDITION] [-paths PATHS_TO_DATA] [-test TESTING_PATH] [-m MEMORY] [-c COUNT] [-gold GOLD] [-rep REPETITIONS] [-rand] model experiment`
 
