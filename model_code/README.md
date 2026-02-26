@@ -4,7 +4,7 @@
 -   [Setup](#setup)
 -   [Run models](#run-models)
 
-## File Structure {#file-structure}
+## File Structure
 
 ### /models
 
@@ -40,7 +40,7 @@ The result files of the MIGHT and Pursuit learners
 
 `tune_pursuit.py` is the script to tune the hyperparameters of Pursuit.
 
-## Setup {#setup}
+## Setup
 
 If you feel comfortable using github:
 
@@ -74,7 +74,7 @@ LABEL2 REFERENT2
 
 If there are different learning conditions and just one test, you can have a single testing file, which you'll pass in as an optional argument. If there is a different combination of learning and testing files, you can pass in a `paths.txt` file indicating the training-testing pairs for each condition (look at the `yurovsky` data for an example of both `paths.txt` and `gold.txt`).
 
-## Run models {#run-models}
+## Run models
 
 The model is run from the `model_code/` directory.
 
