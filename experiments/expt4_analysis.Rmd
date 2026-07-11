@@ -29,13 +29,14 @@ c2 <- contr.treatment(2)
 coding2 <- matrix(rep(1/2, 2), ncol=1)
 simple2 <- c2-coding2
 
-expt4_model_order <- c("Human", "MIGHT", "Pursuit", "FUb", "FUb-fixed")
+expt4_model_order <- c("Human", "MIGHT", "trace", "Pursuit", "FUb", "FUb-fixed")
 ```
 
 # Models
 
 ```{r expt4_models}
 expt4_models <- read_csv("../model_code/results/might_expt4_results.csv") %>%
+  rbind(read_csv("../model_code/results/trace_expt4_results.csv")) %>%
   rbind(read_csv("../model_code/results/pursuit_expt4_results.csv")) %>%
   mutate(
     block = case_when(
@@ -109,9 +110,9 @@ expt4_model_aggr_test <- expt4_model_test  %>%
   ) %>%
   ungroup() %>%
   rbind(expt4_fubg) %>%
-  filter(
-    block != "flush"
-  ) %>%
+  # filter(
+  #   block != "flush"
+  # ) %>%
   mutate(
     block = factor(case_when(
       block %in% c('preflush', 'pre-flush') ~ 'pre-flush',
@@ -198,29 +199,38 @@ expt4_test_all <- expt4_aggr_test %>%
       TRUE ~ model
     ), levels = expt4_model_order
     )
-  )
+  ) %>% write_csv("../model_comparison/expt4.csv")  #%>%
+  # filter(model_g %in% c("MIGHT", "Human")) %>%
+  # mutate(
+  #   model_g = factor(model_g, levels = c("MIGHT", "Human")),
+  #   Condition = factor(case_when(
+  #     condition == "same" ~ "Lexicon",
+  #     condition == "switch" ~ "Learning-space"
+  #   ), levels = c("Lexicon", "Learning-space"))
+  # )
 
 ggplot(filter(expt4_test_all, word_type == "target"), 
-       aes(x=condition, y=mean_acc, fill=block
+       aes(x=Condition, y=mean_acc, fill=block
                                     )) +
-  geom_col_pattern(aes(pattern = participant), position="dodge") +
+  geom_col_pattern(aes(pattern = participant), position="dodge", width=0.8) +
   scale_pattern_manual(values=c("wave",
                                 "stripe"), guide="none") +
   ylim(0, 1) +
   labs(
       x = "Experimental Condition",
       y = "Accuracy at test",
-      fill = "Word type"
+      fill = "Block"
     ) +
   facet_grid(cols=vars(model_g)) +
-  geom_errorbar(aes(x=condition, ymin=mean_acc+se_acc,
+  geom_errorbar(aes(x=Condition, ymin=mean_acc+se_acc,
                     ymax=mean_acc-se_acc),
                 width=.2,
                 position=position_dodge(.9)) +
   scale_fill_manual(values=
                       # col2grey(
-                        c("#b2abd2",
-                          "#e66101")
+                        c("#0397a7", "#b08d5d")#, "#a1c181")#, "#003f5c")
+                        # c("#b2abd2",
+                        #   "#e66101")
                         # )
                     # , guide = "none"
                     ) +
@@ -230,12 +240,12 @@ ggplot(filter(expt4_test_all, word_type == "target"),
         legend.text=element_text(size=14),
         title=element_text(size=16,face="bold"),
         strip.text.x = element_text(size = 14),
-        legend.position = "bottom"
+        # legend.position = "bottom"
         ) +
   geom_hline(yintercept=(1/9), linetype='dotted') 
 
 
-ggsave("expt4_test.png", width=8, height=4, units="in", dpi="print")
+ggsave("expt4_test_diss_pres.png", width=8, height=4, units="in", dpi="print")
 
 ```
 

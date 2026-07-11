@@ -32,7 +32,7 @@ def run_testing_generated(words, model, num_opt):
     return number_correct, responses
 
 
-def run_one_exp(model, training_path, count, num_opt=4, mean_memory_size=7):
+def run_one_exp(model, training_path, count, num_opt=4, mean_memory_size=7, trace=0.01):
     print(model)
     condition = training_path[-14]
     model_col = []
@@ -44,10 +44,16 @@ def run_one_exp(model, training_path, count, num_opt=4, mean_memory_size=7):
     condition_col = []
 
     for i in range(count):
-        learner = learn_one_exp_one_subject(mean_memory_size, model, training_path)
+        learner = learn_one_exp_one_subject(mean_memory_size, model, training_path, trace)
         all_words = [a for a in string.ascii_lowercase[:18]]
         accuracy, responses = run_testing_generated(all_words, learner, num_opt)
-        model_col.extend([model]*len(all_words))
+
+        if model == "trace":
+            mod = model + "_" + str(trace)
+        else:
+            mod = model
+        model_col.extend([mod]*len(all_words))
+        # model_col.extend([model]*len(all_words))
         words_col.extend(all_words)
         meanings_col.extend([a for a in string.ascii_uppercase[:18]])
         response_col.extend(responses)
@@ -68,23 +74,32 @@ def get_all_experiments(path_to_directory):
 COLUMNS = ["sample", "model", "condition", "words", "meanings", "response", "accuracy"]
 
 
-def run_all_exp(directory, count=300):
+def run_all_exp(directory, count=1):
     results = pd.DataFrame([[]]).drop(0)
     all_exp = get_all_experiments(directory)
     all_runs = []
     for _ in COLUMNS:
         all_runs.append([])
-    for model in ["mbp", "pursuit"]:
-        for exp in all_exp:
-            exp_id = exp[-14]
-            print(exp_id)
-            cols = run_one_exp(model, exp, count=count, num_opt=int(exp_id[0]))
-            for i in range(len(COLUMNS)):
-                all_runs[i].extend(cols[i])
+    for model in ["trace"]:# ["might", "trace"]:#, "pursuit"]:
+        if model == "trace":
+            for t in [0.01, 0.02, 0.05, 0.1, 0.2, 0.487]:
+                for exp in all_exp:
+                    exp_id = exp[-14]
+                    print(exp_id)
+                    cols = run_one_exp(model, exp, count=count, mean_memory_size=4, num_opt=int(exp_id[0]), trace=t)
+                    for i in range(len(COLUMNS)):
+                        all_runs[i].extend(cols[i])
+        else:
+            for exp in all_exp:
+                exp_id = exp[-14]
+                print(exp_id)
+                cols = run_one_exp(model, exp, count=count, mean_memory_size=9, num_opt=int(exp_id[0]))
+                for i in range(len(COLUMNS)):
+                    all_runs[i].extend(cols[i])
     for item in COLUMNS:
         results[item] = all_runs[COLUMNS.index(item)]
-    results.to_csv("./results/" + directory.split('/')[-1] + "results.csv", index=False)
-    # print(results)
+    results.to_csv("./results/" + directory.split('/')[-1] + "results_trace_all_eep.csv", index=False)
+    print("./results/" + directory.split('/')[-1] + "results_trace_all_eep.csv")
     return results
 
 

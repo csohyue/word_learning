@@ -13,12 +13,14 @@ class MemoryLearner():
                                 of association value
         lexicon                 Dictionary{<str> word: [<str> meaning]}
     """
-    def __init__(self, subject_id=0, learning_space_size=7):
+    def __init__(self, subject_id=0, learning_space_size=7, trace=0.01):
         self._subject_id = subject_id
         self._learning_space = LearningSpace(learning_space_size)
         self.associations = {}
         self.meanings = []
         self.lexicon = {}
+        self.traces = {}
+        self.trace = trace
         self.removals = 0
         self.working_learning_space_size = learning_space_size
 

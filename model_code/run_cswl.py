@@ -6,6 +6,7 @@ from random import shuffle
 import numpy as np
 import pandas as pd
 from models.might import MIGHTLearner
+from models.might_trace import MIGHTTraceLearner
 from models.pursuit_learner import PursuitLearner
 from models.library import parse_input_data, extract_golden_standard
 
@@ -17,7 +18,7 @@ COLUMNS = ["experiment", "condition", "model", # fixed for the run
 
 EXPOSURE_COLUMNS = COLUMNS[5:]
 
-def learn_one_exp_one_subject(mean_memory_size, model, training):
+def learn_one_exp_one_subject(mean_memory_size, model, training, trace_parameter=0.01):
     """
     Function used by other experimental runs -- this is one subject doing the learning phase for
     one experiment. Many experiments don't have the learning trajectory.
@@ -25,8 +26,10 @@ def learn_one_exp_one_subject(mean_memory_size, model, training):
     memory_size = max(1, round(np.random.normal(mean_memory_size, 1)))
     if model == "pursuit":
         learner = PursuitLearner(0.75)
+    elif model == "trace":
+        learner = MIGHTTraceLearner(learning_space_size=memory_size, trace=trace_parameter)
     else:
-        learner = MIGHTLearner(memory_size)
+        learner = MIGHTLearner(learning_space_size=memory_size)
     parsed_input = parse_input_data(training)
     for utterance in parsed_input:
         learner.one_utterance(utterance)
@@ -107,11 +110,13 @@ def one_subject_all(learner, trianing_input, testing_input, gold):
     subject_df["subject"] = learner.subject_id
     if isinstance(learner, MIGHTLearner):
         subject_df["learning_space_size"] = learner.learning_space.size
+    elif isinstance(learner, MIGHTTraceLearner):
+        subject_df["learning_space_size"] = learner.learning_space.size
     else:
         subject_df["learning_space_size"] = "NA"
     return learner, subject_df
 
-def run_experiment(model, train_test, gold_path_file, mean_memory_size, run_count):
+def run_experiment(model, train_test, gold_path_file, mean_memory_size, trace_parameter, run_count):
     """ Run experiment with multiple runs
     """
     expt_df = pd.DataFrame([[]]).drop(0)
@@ -119,8 +124,10 @@ def run_experiment(model, train_test, gold_path_file, mean_memory_size, run_coun
         memory_size = max(1, round(np.random.normal(mean_memory_size, 1)))
         if model == "pursuit":
             learner = PursuitLearner(run_id + 1, 0.75)
+        elif model == "trace":
+            learner = MIGHTTraceLearner(subject_id=run_id + 1, learning_space_size=memory_size, trace=trace_parameter)
         else:
-            learner = MIGHTLearner(run_id + 1, memory_size)
+            learner = MIGHTLearner(subject_id=run_id + 1, learning_space_size=memory_size)
         learner, subject_df = one_subject_all(learner, train_test[0], train_test[1], gold_path_file)
         expt_df = pd.concat([subject_df, expt_df])
     return expt_df
@@ -139,16 +146,20 @@ def repeat_and_randomize(path_pair, repetitions, randomize):
         inputs.append(current_input)
     return inputs
 
-def run_and_log_expt_condition(args, memory, count, condition, path_pair):
+def run_and_log_expt_condition(args, memory, trace_p, count, condition, path_pair):
     """ function to run one condition with one model and write the csv
     """
     path_to_gold = "data/" + args.experiment + "/" + args.gold if args.gold else args.gold
     repetitions = args.repetitions if args.repetitions else 1
     input_pair = repeat_and_randomize(path_pair, repetitions, args.randomize)
-    expt_log = run_experiment(args.model, input_pair, path_to_gold, memory, count)
+    expt_log = run_experiment(args.model, input_pair, path_to_gold, memory, trace_p, count)
     expt_log["experiment"] = args.experiment
     expt_log["condition"] = condition
-    expt_log["model"] = args.model
+    if args.model == "trace":
+        mod = args.model + "_" + str(trace_p)
+    else:
+        mod = args.model
+    expt_log["model"] = mod
     expt_log = expt_log[COLUMNS]
     return expt_log
 
@@ -204,6 +215,8 @@ def define_arguments():
                         help="name of testing file if it doesn't match training", type=str)
     parser.add_argument("-m", "--memory",help="size of learning-space for MIGHT (default 7)",
                         type=int)
+    parser.add_argument("-t", "--trace",help="size of trace for MIGHT with forgetting (default 0.01)",
+                        type=float)
     parser.add_argument("-c", "--count", help="number of subjects (default 300)", type=int)
     parser.add_argument("-gold", "--gold", help="name of file with gold standard",
                         type=str)
@@ -219,6 +232,7 @@ if __name__ == '__main__':
     arguments = define_arguments()
 
     mean_memory = arguments.memory if arguments.memory else 7
+    trace = arguments.trace if arguments.trace else 0.01
     runs = arguments.count if arguments.count else 300
     if arguments.paths_to_data:
         paths = extract_training_test(arguments.experiment, arguments.paths_to_data)
@@ -229,13 +243,15 @@ if __name__ == '__main__':
     all_runs = pd.DataFrame([[]]).drop(0)
 
     for condition_name, training_testing in paths.items():
-        expt = run_and_log_expt_condition(arguments, mean_memory, runs,
+        expt = run_and_log_expt_condition(arguments, mean_memory, trace, runs,
                                           condition_name, training_testing)
         all_runs = pd.concat([all_runs, expt])
 
     file_name = arguments.model
     if arguments.memory is not None:
         file_name = file_name + "_" + str(arguments.memory)
+    if arguments.trace is not None:
+        file_name = file_name + "_" + str(arguments.trace)
     file_name = file_name + "_" + arguments.experiment
     if arguments.condition is not None:
         file_name = file_name + "_" + arguments.condition

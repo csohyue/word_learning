@@ -5,6 +5,7 @@ import numpy as np
 
 from models.might import MIGHTLearner
 from models.pursuit_learner import PursuitLearner
+from models.might_trace import MIGHTTraceLearner
 from models.library import parse_input_data
 
 COLUMNS = ["condition", "experiment", "subject", "word", "word_type", "item", "instance",
@@ -43,11 +44,11 @@ def run_testing(subject_id, selections, correct_answers, confirm=True):
     """
     Do one iteration of the tests
 
-    :param subject_id [model, learner, index]
+    :param subject_id [model, learner, index, trace]
     :param selections 
     :return: number_correct <int>, responses [<str>]
     """
-    model, learner, index = subject_id
+    model, learner, index, trace_parameter = subject_id
     testing = CONFIRM_TESTING if confirm else CONFLICT_TESTING
     res_dict = {}
     for label in COLUMNS:
@@ -74,7 +75,13 @@ def run_testing(subject_id, selections, correct_answers, confirm=True):
         else:
             res_dict["learning space size"].append("NA")
             res_dict["word in lexicon"].append("NA")
-        res_dict["model"].append(model)
+        
+        if model == "trace":
+            mod = model + "_" + str(trace_parameter)
+        else:
+            mod = model
+        res_dict["model"].append(mod)
+        # res_dict["model"].append(model)
         if word in learner.associations:
             to_add = learner.associations[word][learner.get_best_meaning_i(word)]
         else:
@@ -82,7 +89,7 @@ def run_testing(subject_id, selections, correct_answers, confirm=True):
         res_dict["association"].append(to_add)
     return res_dict
 
-def run_one_exp(model, count=300, mean_memory_size=7, confirm=True):
+def run_one_exp(model, count=300, mean_memory_size=7, trace_parameter=0.01, confirm=True):
     """
     Docstring for run_one_exp
     
@@ -104,11 +111,13 @@ def run_one_exp(model, count=300, mean_memory_size=7, confirm=True):
         all_runs.append([])
     total_num_removals, total_lex_size_target = 0, 0
     for i in range(count):
+        memory_size = max(1, round(np.random.normal(mean_memory_size, 1)))
         if model == "pursuit":
             learner = PursuitLearner(0.75)
         elif model == "might":
-            memory_size = max(1, round(np.random.normal(mean_memory_size, 1)))
-            learner = MIGHTLearner(memory_size)
+            learner = MIGHTLearner(learning_space_size=memory_size)
+        elif model == "trace":
+            learner = MIGHTTraceLearner(learning_space_size=memory_size, trace=trace_parameter)
         else:
             memory_size = max(1, round(np.random.normal(mean_memory_size, 1)))
             learner = MIGHTLearner(memory_size)
@@ -174,24 +183,31 @@ def run_one_exp(model, count=300, mean_memory_size=7, confirm=True):
                 res_dict["learning space size"].append("NA")
                 res_dict["word in lexicon"].append("NA")
 
-            res_dict["model"].append(model)
+            if model == "trace":
+                mod = model + "_" + str(trace_parameter)
+            else:
+                mod = model
+            res_dict["model"].append(mod)
+
             if word in learner.associations:
                 best_meaning = learner.get_best_meaning_i(word)
                 to_add = learner.associations[word][best_meaning]
             else:
                 to_add = -1
             res_dict["association"].append(to_add)
-        if model == "might":
+        if model in ["might", "trace"]:
             total_num_removals += learner.removals
 
         for label in COLUMNS:
             all_runs[COLUMNS.index(label)].extend(res_dict[label])
 
-        results = run_testing([model, learner, i], selections, correct_answers, confirm)
+        results = run_testing([model, learner, i, trace_parameter], selections, correct_answers, confirm)
         for label in COLUMNS:
             all_runs[COLUMNS.index(label)].extend(results[label])
     print(total_num_removals / count)
     print(total_lex_size_target / count)
+    # if model == "trace": 
+        # print(learner.count)
     return all_runs
 
 
@@ -201,18 +217,48 @@ def main():
     results = run_one_exp("might", count=c, mean_memory_size=7, confirm=True)
     conflict_results = run_one_exp("might", count=c, mean_memory_size=7, confirm=False)
 
-    p_results = run_one_exp("pursuit", count=c, mean_memory_size=7, confirm=True)
-    p_conflict_results = run_one_exp("pursuit", count=c, mean_memory_size=7, confirm=False)
+    # p_results = run_one_exp("pursuit", count=c, mean_memory_size=7, confirm=True)
+    # p_conflict_results = run_one_exp("pursuit", count=c, mean_memory_size=7, confirm=False)
+
+    t1_results = run_one_exp("trace", count=c, mean_memory_size=7, trace_parameter=0.01, confirm=True)
+    t1_conflict_results = run_one_exp("trace", count=c, mean_memory_size=7, trace_parameter=0.01, confirm=False)
+
+    t2_results = run_one_exp("trace", count=c, mean_memory_size=7, trace_parameter=0.02, confirm=True)
+    t2_conflict_results = run_one_exp("trace", count=c, mean_memory_size=7, trace_parameter=0.02, confirm=False)
+
+    t3_results = run_one_exp("trace", count=c, mean_memory_size=7, trace_parameter=0.05, confirm=True)
+    t3_conflict_results = run_one_exp("trace", count=c, mean_memory_size=7, trace_parameter=0.05, confirm=False)
+
+    t4_results = run_one_exp("trace", count=c, mean_memory_size=7, trace_parameter=0.1, confirm=True)
+    t4_conflict_results = run_one_exp("trace", count=c, mean_memory_size=7, trace_parameter=0.1, confirm=False)
+
+    t5_results = run_one_exp("trace", count=c, mean_memory_size=7, trace_parameter=0.2, confirm=True)
+    t5_conflict_results = run_one_exp("trace", count=c, mean_memory_size=7, trace_parameter=0.2, confirm=False)
+
+    t6_results = run_one_exp("trace", count=c, mean_memory_size=7, trace_parameter=0.487, confirm=True)
+    t6_conflict_results = run_one_exp("trace", count=c, mean_memory_size=7, trace_parameter=0.487, confirm=False)
 
     for item in COLUMNS:
         results[COLUMNS.index(item)].extend(conflict_results[COLUMNS.index(item)])
-        results[COLUMNS.index(item)].extend(p_results[COLUMNS.index(item)])
-        results[COLUMNS.index(item)].extend(p_conflict_results[COLUMNS.index(item)])
+        # results[COLUMNS.index(item)].extend(p_results[COLUMNS.index(item)])
+        # results[COLUMNS.index(item)].extend(p_conflict_results[COLUMNS.index(item)])
+        results[COLUMNS.index(item)].extend(t1_results[COLUMNS.index(item)])
+        results[COLUMNS.index(item)].extend(t1_conflict_results[COLUMNS.index(item)])
+        results[COLUMNS.index(item)].extend(t2_results[COLUMNS.index(item)])
+        results[COLUMNS.index(item)].extend(t2_conflict_results[COLUMNS.index(item)])
+        results[COLUMNS.index(item)].extend(t3_results[COLUMNS.index(item)])
+        results[COLUMNS.index(item)].extend(t3_conflict_results[COLUMNS.index(item)])
+        results[COLUMNS.index(item)].extend(t4_results[COLUMNS.index(item)])
+        results[COLUMNS.index(item)].extend(t4_conflict_results[COLUMNS.index(item)])
+        results[COLUMNS.index(item)].extend(t5_results[COLUMNS.index(item)])
+        results[COLUMNS.index(item)].extend(t5_conflict_results[COLUMNS.index(item)])
+        results[COLUMNS.index(item)].extend(t6_results[COLUMNS.index(item)])
+        results[COLUMNS.index(item)].extend(t6_conflict_results[COLUMNS.index(item)])
     for item in COLUMNS:
         results_df[item] = results[COLUMNS.index(item)]
 
 
-    results_df.to_csv("results/expt3_models.csv", index=False)
+    results_df.to_csv("results/expt3_models_trace_all.csv", index=False)
 
 
 if __name__ == "__main__":

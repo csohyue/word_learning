@@ -20,9 +20,9 @@ library(ggsignif)
 library(TeachingDemos)
 library(penngradlings)
 
-# theme_set(theme_pgl_minimal())
+theme_set(theme_pgl_minimal())
 
-theme_set(theme_minimal())
+# theme_set(theme_minimal())
 
 `%!in%` <- Negate(`%in%`)
 
@@ -64,6 +64,8 @@ expt1_might_pred <- read_csv("../model_code/results/might_expt1_2_results.csv") 
     expt = "MIGHT"
   ) %>%
   rbind(mutate(read_csv("../model_code/results/might_11_expt1_2_results.csv"), expt = "MIGHT\n(larger memory)")) %>%
+  rbind(mutate(read_csv("../model_code/results/trace_expt1_2_results.csv"), expt = "Trace")) %>%
+  rbind(mutate(read_csv("../model_code/results/trace_11_expt1_2_results.csv"), expt = "Trace\n(larger memory)")) %>%
   rbind(mutate(read_csv("../model_code/results/pursuit_expt1_2_results.csv"), expt = "Pursuit")) %>%
   filter(
     phase == "testing"
@@ -89,10 +91,10 @@ expt1_might_pred <- read_csv("../model_code/results/might_expt1_2_results.csv") 
   ) %>%
   ungroup() 
 
-expt1_model_pred <- expt1_fubg_pred %>%
+ expt1_model_pred <- expt1_fubg_pred %>%
   rbind(expt1_might_pred)
 
-expt1_model_plot <- ggplot(data = filter(expt1_model_pred
+expt1_model_plot <- ggplot(data = filter(expt1_model_pred#, expt != "Trace"
                      ), aes(x=condition, y=mean_acc, fill = word_type_graph)) +
   geom_col_pattern(position="dodge", pattern="stripe") +
   facet_grid(col = vars(expt)) +
@@ -102,7 +104,8 @@ expt1_model_plot <- ggplot(data = filter(expt1_model_pred
   ) +
   scale_fill_manual(values=
                       # col2grey(
-                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
+                        c("#0397a7", "#b08d5d", "#a1c181", "#003f5c")
+                        # c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
                         # )
                     ) +
   geom_errorbar(aes(x=condition, ymin=mean_acc+se,
@@ -311,7 +314,8 @@ expt1_plot <- ggplot(filter(expt1_aggr_test_selections, word_type_graph != "Foil
   geom_col(position="dodge") +
   scale_fill_manual(values=
                       # col2grey(
-                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
+                        c("#0397a7", "#b08d5d", "#a1c181", "#003f5c")
+                        # c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
                         # )
                     ) +
   ylim(0, 1) +
@@ -619,11 +623,13 @@ expt1_2_results <- expt1_aggr_test_selections %>%
   rbind(mutate(expt1_model_pred, participants = "model")) %>%
   mutate(
     expt = factor(expt, levels = c(
-      "MIGHT",
+      "MIGHT", 
+      "Trace",
       "Pursuit", "FUb",
       "FUb-fixed",
       "Expt 1", "Expt 2",
-      "MIGHT\n(larger memory)"
+      "MIGHT\n(larger memory)",
+      "Trace\n(larger memory)"
     )),
     word_type_graph = factor(case_when(
     word_type_graph == "One-shot" ~ "One-shot",
@@ -632,9 +638,10 @@ expt1_2_results <- expt1_aggr_test_selections %>%
     ), levels = c(
       "Target", "One-shot", "Filler"
     ))
-  )
+  ) %>%
+  write_csv("../model_comparison/expt1.csv")
 
-expt1_2_paper_plot <- ggplot(filter(expt1_2_results), aes(x=condition, y=mean_acc, fill=word_type_graph)) +
+expt1_2_paper_plot <- ggplot(filter(expt1_2_results, expt != "Trace"), aes(x=condition, y=mean_acc, fill=word_type_graph)) +
   geom_col_pattern(aes(pattern = participants), position="dodge") +
   scale_pattern_manual(values = c("wave", "stripe"), guide="none") +
   ylim(0, 1) +
@@ -657,16 +664,17 @@ expt1_2_paper_plot <- ggplot(filter(expt1_2_results), aes(x=condition, y=mean_ac
         legend.position = "bottom"
         ) +
   scale_fill_manual(values=
+                        c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
                       # col2grey(
-                        c("#5f1c99", 
-                          # "#b2abd2", 
-                          "#e66101", "#fbd863")
-                        # )
+                        # c("#5f1c99", 
+                        #   # "#b2abd2", 
+                        #   "#e66101", "#fbd863")
+                        # # )
                     ) +
   geom_hline(yintercept=(1/9), linetype='dotted') 
 
 expt1_2_paper_plot
-ggsave("expt1_test.png", width=8, height=6, units="in", dpi="print")
+ggsave("expt1_test_diss.png", width=8, height=6, units="in", dpi="print")
 ```
 
 # Learning supplementary
@@ -700,7 +708,7 @@ ggplot(data = filter(expt1_aggr_learning_selections, word_type == "target"), aes
   geom_col(position="dodge") +
   scale_fill_manual(values=
                       # col2grey(
-                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
+                        c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
                         # )
                     ) +
   facet_grid(cols = vars(condition)) +
@@ -708,6 +716,7 @@ ggplot(data = filter(expt1_aggr_learning_selections, word_type == "target"), aes
                     ymax=mean-se),
                 width=.2,
                 position=position_dodge(.9)) +
+  labs(y = "Mean accuracy") +
   guides(fill = "none")
 ```
 
@@ -803,7 +812,8 @@ ggplot(data = filter(expt1_aggr_typed_learning), aes(x=exposure, y=mean,
     ) +
   scale_fill_manual(values=
                       # col2grey(
-                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
+                        c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
+                        # c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
                         # )
                     ) +
   scale_pattern_manual(values = c("stripe", "wave")) + 
@@ -872,10 +882,15 @@ ggplot(aggr_expt1_exp2_predict_test, aes(x = condition, y = mean_accuracy)) +
                 position=position_dodge(.9)) +
   scale_fill_manual(values=
                       # col2grey(
-                        c("#5f1c99", "#b2abd2")
+                        c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
+                        # c("#5f1c99", "#b2abd2")
                         # )
                     , guide = "none"
                     ) +
+  labs(
+      x = "Condition",
+      y = "Accuracy at test"
+    ) +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=16,face="bold"),
         legend.title=element_text(size=16, face="bold"),

@@ -11,8 +11,11 @@ RESET = 0
 # REINFORCEMENT
 LEARNING_RATE = 0.05 # This value doesn't matter, as long as it is positive given the competition-based thresholding
 UNSEEN = LEARNING_RATE * (1 - LEARNING_RATE)
+#
+# TRACE = 0.01
+###
 
-class MIGHTLearner(MemoryLearner):
+class MIGHTTraceLearner(MemoryLearner):
     """
     A learner using Memory-Integrated Generalized Hypothesis Testing (MIGHT)
 
@@ -23,6 +26,10 @@ class MIGHTLearner(MemoryLearner):
         meanings                [<str> object] index of the meaning corresponds to index 
                                 of association value
         lexicon                 Dictionary{<str> word: [<str> meaning]}
+        #
+        traces                  Dictionary{<str> word: [<str> meaning]}
+                                When a word is forgotten, all its hypotheses are saved as a trace
+        ###
     """
 
     # The following functions are used internally
@@ -37,6 +44,8 @@ class MIGHTLearner(MemoryLearner):
                 self.meanings.append(meaning)
                 for word in self.associations:
                     self.associations[word] = np.append(self.associations[word], NULL_HYPOTHESIS)
+                for word in self.traces:
+                    self.traces[word] = np.append(self.traces[word], 0)
 
     def remove_from_queue(self):
         """ Forget a word from memory
@@ -44,6 +53,17 @@ class MIGHTLearner(MemoryLearner):
         The word is removed from both the memory buffer and the association matrix
         """
         word = self.learning_space.get()
+        # create traces: first check existing associations
+        if word in self.associations:
+            hypothesis_traces = self.associations[word]
+            if word not in self.traces:
+                current = [0 for _ in range(len(self.meanings))]
+            else:
+                current = self.traces[word]
+            for m in range(len(self.meanings)):
+                current[m] = max(current[m], hypothesis_traces[m] * self.trace)
+            self.traces[word] = current
+        ###
         self.associations.pop(word, None)
 
     def online_me(self, m_u):
@@ -61,12 +81,18 @@ class MIGHTLearner(MemoryLearner):
             return None
         for m in m_u:
             a_max = -2
+            m_index = self.meanings.index(m)
             for _, association in self.associations.items():
-                a_m_w = association[self.meanings.index(m)]
+                a_m_w = association[m_index]
                 a_max = max(a_max, a_m_w)
+            # Check traces
+            for _, traces in self.traces.items():
+                if traces[m_index] > 0:
+                    a_max = max(a_max, traces[m_index])
+            ###
             for _, meanings in self.lexicon.items():
                 if m in meanings:
-                    a_max = LEARNED
+                    a_max = max(a_max, LEARNED)
             max_associations.append(a_max)
         # get the minimum value of the max associations of the possible meanings in the utterance
         min_val = min(max_associations)
@@ -107,13 +133,19 @@ class MIGHTLearner(MemoryLearner):
         # Weight is zeroed after being moved to the lexicon
         zero_h_list = []
         zero_weights = []
-        for i in range(len(self.associations[word])):
-            if self.associations[word][i] > 0:
-                positive_h_list.append(i)
-                weights.append(self.associations[word][i])
-            elif self.associations[word][i] == 0:
-                zero_h_list.append(i)
-                zero_weights.append(1)
+        if word in self.associations:
+            for i in range(len(self.meanings)):
+                if self.associations[word][i] > 0:
+                    positive_h_list.append(i)
+                    weights.append(self.associations[word][i])
+                elif self.associations[word][i] == 0:
+                    zero_h_list.append(i)
+                    zero_weights.append(1)
+        if word in self.traces:
+            for j in range(len(self.meanings)):
+                if self.traces[word][j] > 0:
+                    positive_h_list.append(j)
+                    weights.append(self.traces[word][j])
         if len(positive_h_list) > 0:
             best_h = choices(positive_h_list, weights)[0]
         elif len(zero_h_list) > 0:
@@ -132,7 +164,15 @@ class MIGHTLearner(MemoryLearner):
         current = self.associations[word][meaning]
         # If the hypothesis has not yet been made, then initialize to LEARNING_RATE
         if current == NULL_HYPOTHESIS:
-            self.associations[word][meaning] = LEARNING_RATE
+            # from trace
+            if word in self.traces and self.traces[word][meaning] > 0:
+                old = self.traces[word][meaning] / self.trace
+                self.associations[word][meaning] = self.trace * (old + LEARNING_RATE*(1 - old)) + LEARNING_RATE
+                self.traces[word][meaning] = 0
+            else:
+                self.associations[word][meaning] = LEARNING_RATE
+            ###
+            # self.associations[word][meaning] = LEARNING_RATE
         # Otherwise, increment the association score
         else:
             self.associations[word][meaning] = current + LEARNING_RATE*(1 - current)
@@ -177,7 +217,14 @@ class MIGHTLearner(MemoryLearner):
                     self.remove_from_queue()
                     self.removals += 1
                 self.learning_space.put(w)
-                hyp = self.add_novel_word(w, m_u)
+                if w in self.traces:
+                    self.associations[w] = np.zeros(len(self.meanings))
+                    for m in range(len(self.meanings)):
+                        self.associations[w][m] = NULL_HYPOTHESIS
+                    hyp = self.update_word(w, m_u)
+                else:
+                    hyp = self.add_novel_word(w, m_u)
+                # hyp = self.add_novel_word(w, m_u)
 
             else:
                 self.learning_space.increment_weight(w)

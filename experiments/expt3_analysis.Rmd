@@ -30,7 +30,7 @@ c2 <- contr.treatment(2)
 coding2 <- matrix(rep(1/2, 2), ncol=1)
 simple2 <- c2-coding2
 
-expt3_model_order <- c("Human", "MIGHT", "Pursuit", "FUb", "FUb-fixed")
+expt3_model_order <- c("Human", "MIGHT", "TRACE", "Pursuit", "FUb", "FUb-fixed")
 ```
 
 # Models
@@ -52,7 +52,8 @@ expt3_fubg <- tibble(
 )
 
 # "condition" "word_type" "count"     "mean_acc"  "sd_acc"    "se"  
-expt3_models <- read_csv("../model_code/results/expt3_models.csv") %>%
+# expt3_models <- read_csv("../model_code/results/expt3_models.csv") %>%
+expt3_models <- read_csv("../model_code/results/expt3_models_trace.csv") %>%
   group_by(condition, experiment, word_type, model) %>%
   summarise(
     mean_acc = mean(accuracy),
@@ -72,6 +73,7 @@ expt3_models <- read_csv("../model_code/results/expt3_models.csv") %>%
     model = factor(case_when(
       model == "pursuit" ~ "Pursuit",
       model == "might" ~ "MIGHT",
+      model == "trace" ~ "TRACE",
       model == "Human" ~ "Human",
       TRUE ~ model
     ), levels = expt3_model_order
@@ -87,7 +89,8 @@ ggplot(expt3_models, aes(x=condition, y=mean_acc, fill=word_type)) +
   ylim(0, 1) +
   scale_fill_manual(values=
                       # col2grey(
-                        c("#b2abd2", "#e66101", "#fbd863")
+                        c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
+                        # c("#b2abd2", "#e66101", "#fbd863")
                         # )
                     ) +
   labs(
@@ -284,7 +287,8 @@ expt3_test_all <- expt3_aggr_test %>%
       condition == "Conflict-first" ~ "Conflict-\nfirst",
       condition == "Confirm-first" ~ "Confirm-\nfirst"
     ), levels = c("Confirm-\nfirst", "Conflict-\nfirst"))
-  )
+  ) %>%
+  write_csv("../model_comparison/expt3.csv")
 
 
 expt3_all_plot <- ggplot(filter(expt3_test_all, word_type == "target"), 
@@ -297,7 +301,8 @@ expt3_all_plot <- ggplot(filter(expt3_test_all, word_type == "target"),
   ylim(0, 1) +
   scale_fill_manual(values=
                       # col2grey(
-                        c("#5f1c99", "#e66101")
+                        c("#0397a7", "#b08d5d")#, "#a1c181")#, "#003f5c")
+                        # c("#5f1c99", "#e66101")
                         # )
                     , guide = "none"
                     ) +
@@ -327,7 +332,7 @@ expt3_all_plot <- ggplot(filter(expt3_test_all, word_type == "target"),
   geom_hline(yintercept=(1/9), linetype='dotted')
 expt3_all_plot
 
-ggsave("expt3_test.png", width=10, height=4, units="in", dpi="print")
+ggsave("expt3_test_diss.png", width=10, height=4, units="in", dpi="print")
 ```
 ## Correlation
 ```{r correlation}
