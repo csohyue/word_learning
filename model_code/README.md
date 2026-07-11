@@ -51,6 +51,8 @@ $ cd word_learning/model_code
 
 Otherwise, feel free to download the files from github as a zip file and unzip it. Find your way into the directory.
 
+You'll need Python installed, as well as the numpy and pandas libraries.
+
 ### Create your input data files
 
 Each directory in `data` corresponds to an experiment. If there are different conditions within the experiment, then the `{CONDITION_NAME}` prefixes each of the training and testing files. To run most simply, have a training and testing file for each condition with the following naming standard: `{CONDITION_NAME}_training.txt` and `{CONDITION_NAME}_testing.txt`.
