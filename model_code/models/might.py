@@ -6,11 +6,10 @@ from models.memory_learner import MemoryLearner
 
 LEARNED = 100 # Large positive integer acts as a flag removing hypotheses in the lexicon in mutual exclusivity calcalations
 NULL_HYPOTHESIS = -1 # Negative value acts as a flag indicating that item has not been seen
-RESET = 0
+RESET = 0 # Zero acts as a flag indicating that the mapping is in the lexicon
 
 # REINFORCEMENT
-LEARNING_RATE = 0.05 # This value doesn't matter, as long as it is positive given the competition-based thresholding
-UNSEEN = LEARNING_RATE * (1 - LEARNING_RATE)
+LEARNING_RATE = 0.05 # This value doesn't matter, as long as it is positive (0-1.0) given the competition-based thresholding
 
 class MIGHTLearner(MemoryLearner):
     """
@@ -199,7 +198,7 @@ class MIGHTLearner(MemoryLearner):
                 if self.learning_space.full():
                     closest_competitor_score = LEARNING_RATE
                 else:
-                    closest_competitor_score = UNSEEN
+                    closest_competitor_score = LEARNING_RATE * (1 - LEARNING_RATE)
             # Must be more than 2x score of closest competitor
             if top_score > 2 * closest_competitor_score:
                 meaning_i = np.where(word_a == top_score)[0][0]

@@ -1,19 +1,15 @@
 """Code """
 
-from random import choice, choices
+from random import choice, choices, random
 import numpy as np
 from models.memory_learner import MemoryLearner
 
 LEARNED = 100 # Large positive integer acts as a flag removing hypotheses in the lexicon in mutual exclusivity calcalations
 NULL_HYPOTHESIS = -1 # Negative value acts as a flag indicating that item has not been seen
-RESET = 0
+RESET = 0 # Zero acts as a flag indicating that the mapping is in the lexicon
 
 # REINFORCEMENT
-LEARNING_RATE = 0.05 # This value doesn't matter, as long as it is positive given the competition-based thresholding
-UNSEEN = LEARNING_RATE * (1 - LEARNING_RATE)
-#
-# TRACE = 0.01
-###
+LEARNING_RATE = 0.05 # This value doesn't matter, as long as it is positive (0-1.0) given the competition-based thresholding
 
 class MIGHTTraceLearner(MemoryLearner):
     """
@@ -141,7 +137,7 @@ class MIGHTTraceLearner(MemoryLearner):
                 elif self.associations[word][i] == 0:
                     zero_h_list.append(i)
                     zero_weights.append(1)
-        if word in self.traces:
+        if word in self.traces and random() < (self.trace * sum(self.traces[word]) / LEARNING_RATE):
             for j in range(len(self.meanings)):
                 if self.traces[word][j] > 0:
                     positive_h_list.append(j)
@@ -192,11 +188,10 @@ class MIGHTTraceLearner(MemoryLearner):
                 new_hyp = self.meanings.index(choices(m_u)[0])
                 self.update_association(word, new_hyp)
                 return new_hyp
-            else:
-                return None
-        else:  # if meanings[hypothesis] in m_u
-            self.update_association(word, hypothesis)
-            return hypothesis
+            return None
+        # if meanings[hypothesis] in m_u
+        self.update_association(word, hypothesis)
+        return hypothesis
 
     def train_on_utterance(self, w_u, m_u):
         """ Train on a single utterance
@@ -217,14 +212,19 @@ class MIGHTTraceLearner(MemoryLearner):
                     self.remove_from_queue()
                     self.removals += 1
                 self.learning_space.put(w)
-                if w in self.traces:
-                    self.associations[w] = np.zeros(len(self.meanings))
-                    for m in range(len(self.meanings)):
-                        self.associations[w][m] = NULL_HYPOTHESIS
-                    hyp = self.update_word(w, m_u)
+                if m_u != []:
+                    ### Check traces
+                    if w in self.traces and random() < (self.trace * sum(self.traces[w]) / LEARNING_RATE):
+                        self.associations[w] = np.zeros(len(self.meanings))
+                        for m in range(len(self.meanings)):
+                            self.associations[w][m] = NULL_HYPOTHESIS
+                        hyp = self.update_word(w, m_u)
+                    else:
+                        hyp = self.add_novel_word(w, m_u)
+                ###
+                # hyp = self.add_novel_word(w, m_u)
                 else:
                     hyp = self.add_novel_word(w, m_u)
-                # hyp = self.add_novel_word(w, m_u)
 
             else:
                 self.learning_space.increment_weight(w)
@@ -246,7 +246,7 @@ class MIGHTTraceLearner(MemoryLearner):
                 if self.learning_space.full():
                     closest_competitor_score = LEARNING_RATE
                 else:
-                    closest_competitor_score = UNSEEN
+                    closest_competitor_score = LEARNING_RATE*(1-LEARNING_RATE)
             # Must be more than 2x score of closest competitor
             if top_score > 2 * closest_competitor_score:
                 meaning_i = np.where(word_a == top_score)[0][0]
@@ -285,8 +285,18 @@ class MIGHTTraceLearner(MemoryLearner):
             if len(learned_meanings) > 0:
                 return choice(list(learned_meanings))
 
-        # if the word isn't in memory, select randomly
+        # if the word isn't in learning space, check the trace space or select randomly
         if word not in self.associations:
+            if word in self.traces and random() < (self.trace * sum(self.traces[word]) / LEARNING_RATE): 
+                possible_traces = []
+                for meaning in options:
+                    if meaning in self.meanings:
+                        meaning_index = self.meanings.index(meaning)
+                        possible_traces.append(self.traces[word][meaning_index])
+                    else:
+                        possible_traces.append(0)
+                if sum(possible_traces) != 0:
+                    return options[choices(range(len(possible_traces)), possible_traces)[0]]
             return choice(options)
 
         # otherwise: sample from the associations
@@ -295,7 +305,11 @@ class MIGHTTraceLearner(MemoryLearner):
             # No negative weights --> make the negative weight 0
             if meaning in self.meanings:
                 meaning_index = self.meanings.index(meaning)
-                association_score = self.associations[word][meaning_index]
+                if word in self.traces and random() < (self.trace * sum(self.traces[word]) / LEARNING_RATE):
+                    possible_trace = self.traces[word][meaning_index]
+                else:
+                    possible_trace = 0
+                association_score = max(self.associations[word][meaning_index], possible_trace)
             else:
                 association_score = NULL_HYPOTHESIS
 
