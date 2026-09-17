@@ -1,0 +1,62 @@
+---
+title: "Tuning the partial forgetting model"
+author: "Christine Soh Yue"
+date: "2026-07-02"
+output: html_document
+---
+
+# Set-up and libraries
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r library, results=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ggpattern)
+library(lme4)
+library(lmerTest)
+library(ggsignif)
+library(penngradlings)
+
+# theme_set(theme_pgl_minimal())
+theme_set(theme_minimal())
+
+`%!in%` <- Negate(`%in%`)
+
+FORGETTING_COLS = c("experiment", "condition", "model", "trace", "memory", "avg_accuracy", "squared_error", "ape" )
+```
+
+
+# Partial forgetting
+```{r all_traces}
+trace_all <- read_csv("tune_trace/trace_tuning.csv") %>%
+  mutate(
+    aic = 46 * log(mse) + 2*2,
+    bic = 46 * log(mse) + 2*log(46),
+  ) %>%
+  arrange(rmse)
+
+trace_all
+```
+
+Child
+```{r trace_suanda}
+read_csv("tune_trace/trace_tuning_suanda.csv") %>%
+  arrange(rmse)
+```
+
+# Partial forgetting with small learning space
+```{r small_learning_space}
+trace_all %>%
+  filter(memory <= 5.0) %>%
+  arrange(rmse)
+```
+
+# Analysis by trace parameter value
+```{r analysis_by_trace}
+trace_all %>% 
+  group_by(trace) %>% 
+  slice_min(mse, n = 1) %>%
+  arrange(mse)
+```
