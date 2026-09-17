@@ -40,6 +40,7 @@ class MIGHTTraceLearner(MemoryLearner):
                 self.meanings.append(meaning)
                 for word in self.associations:
                     self.associations[word] = np.append(self.associations[word], NULL_HYPOTHESIS)
+                # Partial-forgetting version has a trace space
                 for word in self.traces:
                     self.traces[word] = np.append(self.traces[word], 0)
 
@@ -137,6 +138,7 @@ class MIGHTTraceLearner(MemoryLearner):
                 elif self.associations[word][i] == 0:
                     zero_h_list.append(i)
                     zero_weights.append(1)
+        # Items with more trace mappings are more likely to be retrieved
         if word in self.traces and random() < (self.trace * sum(self.traces[word]) / LEARNING_RATE):
             for j in range(len(self.meanings)):
                 if self.traces[word][j] > 0:
@@ -163,7 +165,8 @@ class MIGHTTraceLearner(MemoryLearner):
             # from trace
             if word in self.traces and self.traces[word][meaning] > 0:
                 old = self.traces[word][meaning] / self.trace
-                self.associations[word][meaning] = self.trace * (old + LEARNING_RATE*(1 - old)) + LEARNING_RATE
+                new_from_trace = self.trace * (old + LEARNING_RATE*(1 - old)) + LEARNING_RATE
+                self.associations[word][meaning] = new_from_trace
                 self.traces[word][meaning] = 0
             else:
                 self.associations[word][meaning] = LEARNING_RATE
@@ -214,7 +217,8 @@ class MIGHTTraceLearner(MemoryLearner):
                 self.learning_space.put(w)
                 if m_u != []:
                     ### Check traces
-                    if w in self.traces and random() < (self.trace * sum(self.traces[w]) / LEARNING_RATE):
+                    retrieve_from_trace = self.trace * sum(self.traces[w]) / LEARNING_RATE
+                    if w in self.traces and random() < retrieve_from_trace:
                         self.associations[w] = np.zeros(len(self.meanings))
                         for m in range(len(self.meanings)):
                             self.associations[w][m] = NULL_HYPOTHESIS
@@ -287,7 +291,8 @@ class MIGHTTraceLearner(MemoryLearner):
 
         # if the word isn't in learning space, check the trace space or select randomly
         if word not in self.associations:
-            if word in self.traces and random() < (self.trace * sum(self.traces[word]) / LEARNING_RATE): 
+            retrieve_from_trace = self.trace * sum(self.traces[word]) / LEARNING_RATE
+            if word in self.traces and random() < retrieve_from_trace:
                 possible_traces = []
                 for meaning in options:
                     if meaning in self.meanings:
@@ -305,7 +310,8 @@ class MIGHTTraceLearner(MemoryLearner):
             # No negative weights --> make the negative weight 0
             if meaning in self.meanings:
                 meaning_index = self.meanings.index(meaning)
-                if word in self.traces and random() < (self.trace * sum(self.traces[word]) / LEARNING_RATE):
+                retrieve_from_trace = self.trace * sum(self.traces[word]) / LEARNING_RATE
+                if word in self.traces and random() < retrieve_from_trace:
                     possible_trace = self.traces[word][meaning_index]
                 else:
                     possible_trace = 0
