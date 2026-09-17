@@ -1,7 +1,7 @@
 ---
 title: "Expt 1, Expt 2 Analysis"
 author: "Christine Soh Yue"
-date: "2025-01-13"
+date: "2025-01-13, updated 2026-09-17"
 output: html_document
 ---
 
@@ -50,10 +50,10 @@ expt1_fubg_pred <- tibble(
                  0.6636, 0.2486, 0.4618,
                  0.2475, 0.2486, 0.6267
                  ), 
-  "sd_acc" = c(0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0), 
-  "se" = c(0, 0, 0, 0, 0, 0,
-           0, 0, 0, 0, 0, 0), 
+  "sd_acc" = c(NA, NA, NA, NA, NA, NA,
+               NA, NA, NA, NA, NA, NA), 
+  "ci" = c(NA, NA, NA, NA, NA, NA,
+           NA, NA, NA, NA, NA, NA), 
   "expt" = c("FUb", "FUb", "FUb", "FUb", "FUb", "FUb",
              "FUb-fixed", "FUb-fixed", "FUb-fixed", 
              "FUb-fixed", "FUb-fixed", "FUb-fixed")
@@ -63,9 +63,6 @@ expt1_might_pred <- read_csv("../model_code/results/might_expt1_2_results.csv") 
   mutate(
     expt = "MIGHT"
   ) %>%
-  rbind(mutate(read_csv("../model_code/results/might_11_expt1_2_results.csv"), expt = "MIGHT\n(larger memory)")) %>%
-  rbind(mutate(read_csv("../model_code/results/trace_expt1_2_results.csv"), expt = "Trace")) %>%
-  rbind(mutate(read_csv("../model_code/results/trace_11_expt1_2_results.csv"), expt = "Trace\n(larger memory)")) %>%
   rbind(mutate(read_csv("../model_code/results/pursuit_expt1_2_results.csv"), expt = "Pursuit")) %>%
   filter(
     phase == "testing"
@@ -86,15 +83,15 @@ expt1_might_pred <- read_csv("../model_code/results/might_expt1_2_results.csv") 
   summarise(
     count = n(),
     mean_acc = mean(accuracy),
-    sd_acc = sd(accuracy),
-    se = sd_acc / sqrt(count)
+    sd_acc = NA,
+    ci = NA
   ) %>%
   ungroup() 
 
  expt1_model_pred <- expt1_fubg_pred %>%
   rbind(expt1_might_pred)
 
-expt1_model_plot <- ggplot(data = filter(expt1_model_pred#, expt != "Trace"
+expt1_model_plot <- ggplot(data = filter(expt1_model_pred
                      ), aes(x=condition, y=mean_acc, fill = word_type_graph)) +
   geom_col_pattern(position="dodge", pattern="stripe") +
   facet_grid(col = vars(expt)) +
@@ -103,13 +100,10 @@ expt1_model_plot <- ggplot(data = filter(expt1_model_pred#, expt != "Trace"
     legend.position = "bottom"
   ) +
   scale_fill_manual(values=
-                      # col2grey(
-                        c("#0397a7", "#b08d5d", "#a1c181", "#003f5c")
-                        # c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
-                        # )
+                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
                     ) +
-  geom_errorbar(aes(x=condition, ymin=mean_acc+se,
-                    ymax=mean_acc-se),
+  geom_errorbar(aes(x=condition, ymin=mean_acc+ci,
+                    ymax=mean_acc-ci),
                 width=.3,
                 position=position_dodge(.9)) +
   geom_hline(aes(yintercept = 1/9), linetype = "dashed") +
@@ -303,7 +297,7 @@ expt1_aggr_test_selections <- expt1_test_selections %>%
     count = n(),
     mean_acc = mean(accuracy),
     sd_acc = sd(accuracy),
-    se = sd_acc / sqrt(count)
+    ci = sd_acc / sqrt(count) * 1.96
   ) %>%
   ungroup() %>%
   mutate(
@@ -313,10 +307,7 @@ expt1_aggr_test_selections <- expt1_test_selections %>%
 expt1_plot <- ggplot(filter(expt1_aggr_test_selections, word_type_graph != "Foil"), aes(x=condition, y=mean_acc, fill=word_type_graph)) +
   geom_col(position="dodge") +
   scale_fill_manual(values=
-                      # col2grey(
-                        c("#0397a7", "#b08d5d", "#a1c181", "#003f5c")
-                        # c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
-                        # )
+                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
                     ) +
   ylim(0, 1) +
   labs(
@@ -324,8 +315,8 @@ expt1_plot <- ggplot(filter(expt1_aggr_test_selections, word_type_graph != "Foil
       y = "Accuracy at test",
       fill = "Word type"
     ) +
-  geom_errorbar(aes(x=condition, ymin=mean_acc+se,
-                    ymax=mean_acc-se),
+  geom_errorbar(aes(x=condition, ymin=mean_acc+ci,
+                    ymax=mean_acc-ci),
                 width=.2,
                 position=position_dodge(.9)) +
   theme(axis.text=element_text(size=12),
@@ -465,7 +456,7 @@ expt2_aggr_test_selections <- expt2_test_selections %>%
     count = n(),
     mean_acc = mean(accuracy),
     sd_acc = sd(accuracy),
-    se = sd_acc / sqrt(count)
+    ci = sd_acc / sqrt(count) * 1.96
   ) %>%
   ungroup() %>%
   mutate(
@@ -485,8 +476,8 @@ expt2_testing_plot <- ggplot(filter(expt2_aggr_test_selections, word_type_graph 
       y = "Accuracy at test",
       fill = "Word type"
     ) +
-  geom_errorbar(aes(x=condition, ymin=mean_acc+se,
-                    ymax=mean_acc-se),
+  geom_errorbar(aes(x=condition, ymin=mean_acc+ci,
+                    ymax=mean_acc-ci),
                 width=.2,
                 position=position_dodge(.9)) +
   theme(axis.text=element_text(size=12),
@@ -638,8 +629,56 @@ expt1_2_results <- expt1_aggr_test_selections %>%
     ), levels = c(
       "Target", "One-shot", "Filler"
     ))
+  ) 
+
+expt1_confidence <- expt1_2_results %>%
+  mutate(
+    minb = mean_acc - ci,
+    maxb = mean_acc + ci
   ) %>%
-  write_csv("../model_comparison/expt1.csv")
+  filter(
+    expt != "Expt 2"
+  ) %>%
+  select(!c(count, participants, sd_acc, ci)) %>%
+  pivot_wider(names_from = expt, values_from = c(mean_acc, minb, maxb)) %>%
+  mutate(
+    min = `minb_Expt 1`,
+    max = `maxb_Expt 1`
+  ) %>%
+  select(!c(`minb_FUb`, `maxb_FUb`, `minb_FUb-fixed`, `maxb_FUb-fixed`, 
+            minb_Pursuit, maxb_Pursuit, minb_MIGHT, maxb_MIGHT, 
+            # minb_TRACE, maxb_TRACE, 
+            `minb_Expt 1`, `maxb_Expt 1`)) %>%
+  mutate(
+    FUb = mean_acc_FUb > min & mean_acc_FUb < max,
+    FUb_f = `mean_acc_FUb-fixed` > min & `mean_acc_FUb-fixed` < max,
+    MIGHT = mean_acc_MIGHT > min & mean_acc_MIGHT < max,
+    Pursuit = mean_acc_Pursuit > min & mean_acc_Pursuit < max
+  )
+
+expt2_confidence <- expt1_2_results %>%
+  mutate(
+    minb = mean_acc - ci,
+    maxb = mean_acc + ci
+  ) %>%
+  filter(
+    expt != "Expt 1"
+  ) %>%
+  select(!c(count, participants, sd_acc, ci)) %>%
+  pivot_wider(names_from = expt, values_from = c(mean_acc, minb, maxb)) %>%
+  mutate(
+    min = `minb_Expt 2`,
+    max = `maxb_Expt 2`
+  ) %>%
+  select(!c(`minb_FUb`, `maxb_FUb`, `minb_FUb-fixed`, `maxb_FUb-fixed`, 
+            minb_Pursuit, maxb_Pursuit, minb_MIGHT, maxb_MIGHT, 
+            `minb_Expt 2`, `maxb_Expt 2`)) %>%
+  mutate(
+    FUb = mean_acc_FUb > min & mean_acc_FUb < max,
+    FUb_f = `mean_acc_FUb-fixed` > min & `mean_acc_FUb-fixed` < max,
+    MIGHT = mean_acc_MIGHT > min & mean_acc_MIGHT < max,
+    Pursuit = mean_acc_Pursuit > min & mean_acc_Pursuit < max
+  )
 
 expt1_2_paper_plot <- ggplot(filter(expt1_2_results, expt != "Trace"), aes(x=condition, y=mean_acc, fill=word_type_graph)) +
   geom_col_pattern(aes(pattern = participants), position="dodge") +
@@ -651,8 +690,8 @@ expt1_2_paper_plot <- ggplot(filter(expt1_2_results, expt != "Trace"), aes(x=con
       fill = "Word type"
     ) +
   facet_wrap(vars(expt), nrow = 2, scales="free_x") +
-  geom_errorbar(aes(x=condition, ymin=mean_acc+se,
-                    ymax=mean_acc-se),
+  geom_errorbar(aes(x=condition, ymin=mean_acc+ci,
+                    ymax=mean_acc-ci),
                 width=.2,
                 position=position_dodge(.9)) +
   theme(axis.text=element_text(size=12),
@@ -664,17 +703,13 @@ expt1_2_paper_plot <- ggplot(filter(expt1_2_results, expt != "Trace"), aes(x=con
         legend.position = "bottom"
         ) +
   scale_fill_manual(values=
-                        c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
-                      # col2grey(
-                        # c("#5f1c99", 
-                        #   # "#b2abd2", 
-                        #   "#e66101", "#fbd863")
-                        # # )
+                      c("#5f1c99",
+                        "#e66101", "#fbd863")
                     ) +
   geom_hline(yintercept=(1/9), linetype='dotted') 
 
 expt1_2_paper_plot
-ggsave("expt1_test_diss.png", width=8, height=6, units="in", dpi="print")
+ggsave("expt1_test.png", width=8, height=6, units="in", dpi="print")
 ```
 
 # Learning supplementary
@@ -708,7 +743,10 @@ ggplot(data = filter(expt1_aggr_learning_selections, word_type == "target"), aes
   geom_col(position="dodge") +
   scale_fill_manual(values=
                       # col2grey(
-                        c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
+                        # c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
+                      c("#5f1c99",
+                        # "#b2abd2",
+                        "#e66101", "#fbd863")
                         # )
                     ) +
   facet_grid(cols = vars(condition)) +
@@ -812,8 +850,8 @@ ggplot(data = filter(expt1_aggr_typed_learning), aes(x=exposure, y=mean,
     ) +
   scale_fill_manual(values=
                       # col2grey(
-                        c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
-                        # c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
+                        # c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
+                        c("#5f1c99", "#b2abd2", "#e66101", "#fbd863")
                         # )
                     ) +
   scale_pattern_manual(values = c("stripe", "wave")) + 
@@ -882,8 +920,8 @@ ggplot(aggr_expt1_exp2_predict_test, aes(x = condition, y = mean_accuracy)) +
                 position=position_dodge(.9)) +
   scale_fill_manual(values=
                       # col2grey(
-                        c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
-                        # c("#5f1c99", "#b2abd2")
+                        # c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
+                        c("#5f1c99", "#b2abd2")
                         # )
                     , guide = "none"
                     ) +

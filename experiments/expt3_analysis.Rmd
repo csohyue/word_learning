@@ -1,7 +1,7 @@
 ---
 title: "Expt 3 analysis"
 author: "Christine Soh Yue"
-date: "2025-01-14"
+date: "2025-01-14, updated 2026-09-17"
 output: html_document
 ---
 
@@ -45,21 +45,23 @@ expt3_fubg <- tibble(
   "count" = c(1, 1, 1, 1, 1, 1, 1, 1), 
   "mean_acc" = c(0.344, 0.222, 0.344, 0.222,
                  0.327, 0.286, 0.215, 0.289), 
-  "sd_acc" = c(0, 0, 0, 0, 0, 0, 0, 0), 
-  "se_acc" = c(0, 0, 0, 0, 0, 0, 0, 0), 
+  "sd_acc" = c(NA, NA, NA, NA, NA, NA, NA, NA), 
+  "se_acc" = c(NA, NA, NA, NA, NA, NA, NA, NA), 
   "model" = c("FUb", "FUb", "FUb", "FUb", 
              "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed")
 )
 
-# "condition" "word_type" "count"     "mean_acc"  "sd_acc"    "se"  
-# expt3_models <- read_csv("../model_code/results/expt3_models.csv") %>%
-expt3_models <- read_csv("../model_code/results/expt3_models_trace.csv") %>%
+expt3_models <- read_csv("../model_code/results/might_expt3_results.csv") %>%
+  mutate(
+    expt = "MIGHT"
+  ) %>%
+  rbind(mutate(read_csv("../model_code/results/pursuit_expt3_results.csv"), expt = "Pursuit")) %>%
   group_by(condition, experiment, word_type, model) %>%
   summarise(
     mean_acc = mean(accuracy),
-    sd_acc = sd(accuracy),
-    count = n(),
-    se_acc = sd_acc / sqrt(count)
+    sd_acc = NA,
+    se_acc = NA,
+    count = n()
   ) %>%
   ungroup() %>%
   mutate(
@@ -82,31 +84,6 @@ expt3_models <- read_csv("../model_code/results/expt3_models_trace.csv") %>%
   filter(
     word_type == "target"
   ) 
-
-ggplot(expt3_models, aes(x=condition, y=mean_acc, fill=word_type)) +
-  facet_wrap(~model) +
-  geom_col_pattern(position="dodge", pattern="stripe") +
-  ylim(0, 1) +
-  scale_fill_manual(values=
-                      # col2grey(
-                        c("#0397a7", "#b08d5d", "#a1c181")#, "#003f5c")
-                        # c("#b2abd2", "#e66101", "#fbd863")
-                        # )
-                    ) +
-  labs(
-      x = "Experimental Condition",
-      y = "Accuracy at test",
-      fill = "Word type"
-    ) +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=16,face="bold"),
-        legend.title=element_text(size=16, face="bold"),
-        legend.text=element_text(size=14),
-        title=element_text(size=16,face="bold"),
-        strip.text.x = element_text(size = 14)
-        ) +
-  geom_hline(yintercept=(1/9), linetype='dotted')
-
 ```
 
 # Experiment 3
@@ -222,9 +199,7 @@ ggplot(filter(expt3_aggr_test
                                     )) +
   geom_col(position="dodge") +
   scale_fill_manual(values=
-                      # col2grey(
                         c("#b2abd2", "#e66101", "#fbd863")
-                        # )
                     ) +
   ylim(0, 1) +
   labs(
@@ -243,12 +218,6 @@ ggplot(filter(expt3_aggr_test
         title=element_text(size=16,face="bold"),
         strip.text.x = element_text(size = 14)
         ) +
-  # geom_signif(
-  #   data = expt3_annotation_df,
-  #   aes(xmin = start, xmax = end, annotations = label, y_position = y_pos),
-  #   manual = TRUE, # Use 'manual = TRUE' when providing aesthetics via a data frame
-  #   inherit.aes = FALSE # Do not inherit aesthetics from the main ggplot() call
-  #   ) +
   geom_hline(yintercept=(1/12), linetype='dotted') 
 
 ```
@@ -287,8 +256,7 @@ expt3_test_all <- expt3_aggr_test %>%
       condition == "Conflict-first" ~ "Conflict-\nfirst",
       condition == "Confirm-first" ~ "Confirm-\nfirst"
     ), levels = c("Confirm-\nfirst", "Conflict-\nfirst"))
-  ) %>%
-  write_csv("../model_comparison/expt3.csv")
+  )
 
 
 expt3_all_plot <- ggplot(filter(expt3_test_all, word_type == "target"), 
@@ -300,16 +268,12 @@ expt3_all_plot <- ggplot(filter(expt3_test_all, word_type == "target"),
   scale_pattern_manual(values=c("wave", "stripe"), guide="none") +
   ylim(0, 1) +
   scale_fill_manual(values=
-                      # col2grey(
-                        c("#0397a7", "#b08d5d")#, "#a1c181")#, "#003f5c")
-                        # c("#5f1c99", "#e66101")
-                        # )
+                        c("#5f1c99", "#e66101")
                     , guide = "none"
                     ) +
   labs(
       x = "Experimental Condition",
       y = "Accuracy at test",
-      # title = "MBP Accuracy at test",
       fill = "Word type"
     ) +
   geom_errorbar(aes(x=cond, ymin=mean_acc+se_acc,
@@ -332,7 +296,7 @@ expt3_all_plot <- ggplot(filter(expt3_test_all, word_type == "target"),
   geom_hline(yintercept=(1/9), linetype='dotted')
 expt3_all_plot
 
-ggsave("expt3_test_diss.png", width=10, height=4, units="in", dpi="print")
+ggsave("expt3_test.png", width=10, height=4, units="in", dpi="print")
 ```
 ## Correlation
 ```{r correlation}
@@ -391,14 +355,14 @@ expt3_fubg_by_word <- tibble(
                  0.294, 0.3, 0.301, 0.305, 0.172, 
                  0.314, 0.321, 0.301, 0.412, 0.17, 
                  0.123, 0.261, 0.346, 0.132), 
-  "sd_acc" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 
-  "se_acc" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 
+  "sd_acc" = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
+               NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
+               NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
+               NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA), 
+  "se_acc" = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
+               NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
+               NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,
+               NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA), 
   "model" = c( 
              "FUb", "FUb", "FUb", "FUb", "FUb", 
              "FUb", "FUb", "FUb", "FUb", "FUb", 
@@ -417,13 +381,17 @@ expt3_fubg_by_word <- tibble(
 )
 
 
-expt3_model_by_word <- read_csv("../model_code/results/expt3_models.csv") %>%
+expt3_model_by_word <- expt3_models <- read_csv("../model_code/results/might_expt3_results.csv") %>%
+  mutate(
+    expt = "MIGHT"
+  ) %>%
+  rbind(mutate(read_csv("../model_code/results/pursuit_expt3_results.csv"), expt = "Pursuit")) %>%
   group_by(condition, experiment, word, word_type, model) %>%
   summarise(
     mean_acc = mean(accuracy),
-    sd_acc = sd(accuracy),
+    sd_acc = NA,
     count = n(),
-    se_acc = sd_acc / sqrt(count)
+    se_acc = NA
   ) %>%
   ungroup() %>%
   mutate(
