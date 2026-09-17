@@ -1,0 +1,75 @@
+---
+title: "compare_trace_might"
+author: "Christine Soh Yue"
+date: "2026-07-02"
+output: html_document
+---
+
+# Set-up and libraries
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r library, results=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ggpattern)
+library(lme4)
+library(lmerTest)
+library(ggsignif)
+library(penngradlings)
+library(car)
+
+theme_set(theme_pgl_minimal())
+
+# theme_set(theme_minimal())
+
+`%!in%` <- Negate(`%in%`)
+COLS = c("experiment", "condition", "model", "memory", "avg_accuracy",
+         "squared_error", "ape")
+```
+
+# MIGHT Adult
+
+```{r all}
+all <- read_csv("tune_might/expt1.csv") %>%
+  select(all_of(COLS)) %>%
+  rbind(select(read_csv("tune_might/expt2.csv"), all_of(COLS))) %>%
+  rbind(select(read_csv("tune_might/expt3.csv"), all_of(COLS))) %>%
+  rbind(select(read_csv("tune_might/expt4.csv"), all_of(COLS))) %>%
+  rbind(read_csv("tune_might/trueswell.csv")) %>%
+  rbind(read_csv("tune_might/yurovsky.csv")) %>%
+  rbind(read_csv("tune_might/yusmith.csv")) %>%
+  mutate(
+    k = 1
+  ) %>%
+  group_by(memory, k) %>%
+  summarize(
+    mse = mean(squared_error),
+    mape = mean(ape)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    rmse = sqrt(mse)
+  ) %>%
+  arrange(rmse)
+
+all
+```
+
+# MIGHT child
+```{r small}
+child <- read_csv("tune_might/suanda.csv") %>%
+  group_by(memory) %>%
+  summarize(
+    mse = mean(squared_error),
+    mape = mean(ape)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    rmse = sqrt(mse)
+  ) %>%
+  arrange(rmse)
+
+child
+```
