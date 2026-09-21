@@ -213,7 +213,7 @@ def define_arguments():
                         help="name of txt document with training, testing pairs", type=str)
     parser.add_argument("-test", "--testing_path",
                         help="name of testing file if it doesn't match training", type=str)
-    parser.add_argument("-m", "--memory",help="size of learning-space for MIGHT (default 7)",
+    parser.add_argument("-m", "--memory",help="size of learning-space for MIGHT (default 9.5)",
                         type=int)
     parser.add_argument("-t", "--trace",help="size of trace for MIGHT with forgetting (default 0.01)",
                         type=float)
@@ -231,7 +231,7 @@ def define_arguments():
 if __name__ == '__main__':
     arguments = define_arguments()
 
-    mean_memory = arguments.memory if arguments.memory else 7
+    mean_memory = arguments.memory if arguments.memory else 9.5
     trace = arguments.trace if arguments.trace else 0.01
     runs = arguments.count if arguments.count else 300
     if arguments.paths_to_data:

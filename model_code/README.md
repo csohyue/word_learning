@@ -8,9 +8,9 @@
 
 ### /models
 
-`models` contains the code for the MIGHT model (`might_learner.py`), the Pursuit model (`pursuit_learner.py`), and the Familiarity Uncertainty biased Global model (`kachergis.Rmd`), adopted from George Kachergis' (github)[<https://github.com/kachergis/word_learning_models/tree/master>].
+`models` contains the code for the MIGHT model (`might_learner.py`), the Pursuit model (`pursuit_learner.py`), and the Familiarity Uncertainty biased Global model (`kachergis.Rmd`), adopted from George Kachergis' (github)[<https://github.com/kachergis/word_learning_models/tree/master>]. It also contains code for the MIGHT model with partial forgetting (`might_trace.py`).
 
-The MIGHT model is built on the `MemoryLearner class`, and the `learningspace` is defined in `learning_space.py` (I used this to apply the memory component on different learning strategies in the first iteration of the paper). `library.py` contains some functions that are helpful for running the model.
+The MIGHT models are built on the `MemoryLearner class`, and the `learningspace` is defined in `learning_space.py` (I used this to apply the memory component on different learning strategies in the first iteration of the paper). `library.py` contains some functions that are helpful for running the model.
 
 To run MIGHT or Pursuit, put the input data into the `data` directory, as described below.
 
@@ -82,7 +82,7 @@ The model is run from the `model_code/` directory.
 
 `run_cswl.py` is the script you can run from the command line.
 
-usage: `computational models for cswl [-h] [-cond CONDITION] [-paths PATHS_TO_DATA] [-test TESTING_PATH] [-m MEMORY] [-c COUNT] [-gold GOLD] [-rep REPETITIONS] [-rand] model experiment`
+usage: `computational models for cswl [-h] [-cond CONDITION] [-paths PATHS_TO_DATA] [-test TESTING_PATH] [-m MEMORY] [-t TRACE] [-c COUNT] [-gold GOLD] [-rep REPETITIONS] [-rand] model experiment`
 
 run word learning
 
@@ -102,7 +102,9 @@ optional arguments:
 
 -   `-test`, `--testing_path` name of testing file if it doesn't match training (default matches training)
 
--   `-m`, `--memory` size of learning-space for MIGHT (default 7)
+-   `-m`, `--memory` size of learning-space for MIGHT (default 9.5)
+
+-   `-t`, `--trace` size of trace for MIGHT with forgetting (default 0.01)
 
 -   `-c`, `--count` number of subjects (default 300)
 

@@ -6,13 +6,15 @@ Yue, LaTourrette, Yang, & Trueswell (submitted)
 
 ## Contents
 
--   `model_code` - folder containing the computational models (Section 2). Read this directory's README to see how to run the models
+-   `model_code` - folder containing the computational models (Section 2, Section 5). Read this directory's README to see how to run the models
 
-    -   `models` - folder containing the code for the MIGHT model (`might_learner.py`), the Pursuit model (`pursuit_learner.py`), and the Familiarity Uncertainty biased Global model (`kachergis.Rmd`), adopted from George Kachergis' (github)[<https://github.com/kachergis/word_learning_models/tree/master>].
+    -   `models` - folder containing the code for the MIGHT model (`might_learner.py`), the Pursuit model (`pursuit_learner.py`), and the Familiarity Uncertainty biased Global model (`kachergis.Rmd`), adopted from George Kachergis' (github)[<https://github.com/kachergis/word_learning_models/tree/master>]. It also contains code for the MIGHT model with partial forgetting (`might_trace.py`).
 
     -   `data` - a folder containing the data `txt` files for the MIGHT and Pursuit models to run on
 
     -   `results` - a folder containing the model output for the MIGHT and Pursuit models
+
+    -   `tune_models` - a folder containing code to tune the MIGHT and partial-forgetting MIGHT models
 
     -   `run_cswl.py` - main file for running MIGHT and Pursuit model code
 
@@ -125,5 +127,7 @@ Yue, LaTourrette, Yang, & Trueswell (submitted)
     -   `expt4_analysis.Rmd` - R Markdown file containing analyses for Experiment 4
 
     -   `expt4_analysis.html` - html knitted version of analyses
+
+-   `compare_models`
 
 #### 
