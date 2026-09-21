@@ -1,0 +1,609 @@
+---
+title: "AIC BIC"
+author: "Christine Soh Yue"
+date: "2026-07-02"
+output: html_document
+---
+
+# Set-up and libraries
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r library, results=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ggpattern)
+library(lme4)
+library(lmerTest)
+library(ggsignif)
+library(penngradlings)
+library(car)
+
+theme_set(theme_pgl_minimal())
+
+# theme_set(theme_minimal())
+
+`%!in%` <- Negate(`%in%`)
+
+COLNAMES <- c("expt", "condition", "model", "avg_accuracy", "human", "squared_error", "ape")
+```
+# Simulations
+
+## Trueswell et al
+
+```{r read_trueswell_data}
+trueswell_read_in <- read_csv("../model_code/results/might_trueswell_results.csv") %>%
+  rbind(mutate(read_csv("../model_code/results/trace_4.25_0.5_trueswell_results.csv"), model = "small_partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/trace_8.75_0.01_trueswell_results.csv"), model = "partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/pursuit_trueswell_results.csv"), model = "pursuit")) %>%
+  filter(phase == "learning") 
+
+trueswell_fub <- tibble("condition"=as.character(c(1, 2, 3, 4, 5, "Prev 0", "Prev 1", 
+                                                   1, 2, 3, 4, 5, "Prev 0", "Prev 1")),
+                            "avg_accuracy"=c(0.201, 0.233, 0.26, 0.298, 0.333, 0.282, 0.282,
+                                             0.201, 0.233, 0.26, 0.298, 0.333, 0.282, 0.282),
+                            "model"=c("FUb", "FUb", "FUb", "FUb", "FUb", "FUb", "FUb",
+                                      "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed", 
+           "FUb-fixed", "FUb-fixed", "FUb-fixed"))
+
+trueswell_exp <- tibble("condition"=c("1", "2", "3", "4", "5", "Prev 0", "Prev 1"),
+                            "human"=c(0.178, 0.222, 0.272, 0.311, 0.333, 0.21, 0.47))
+
+trueswell_trajectory_models <- trueswell_read_in %>%
+  mutate(condition = as.character(exposure)) %>%
+  group_by(
+    condition, model
+  ) %>%
+  summarise(
+    avg_accuracy = mean(accuracy)
+  ) %>%
+  ungroup()
+
+trueswell_hyp_models <- trueswell_read_in %>%
+  filter(exposure > 1) %>%
+  mutate(condition = paste("Prev", previous_correct)) %>%
+  group_by(
+    condition, model
+  ) %>%
+  summarise(
+    avg_accuracy = mean(accuracy)
+  ) %>%
+  ungroup()
+
+trueswell <- trueswell_trajectory_models %>%
+  rbind(trueswell_hyp_models) %>%
+  rbind(trueswell_fub) %>% 
+  left_join(trueswell_exp) %>%
+  mutate(
+    expt = case_when(
+      condition %in% c("1", "2", "3", "4", "5") ~ "Trueswell_traj",
+      TRUE ~ "Trueswell_hyp"
+    ),
+    squared_error = (avg_accuracy - human)^2,
+    ape = abs((human - avg_accuracy) / human)
+  ) %>%
+  select(COLNAMES)
+```
+
+## Yurovsky & Yu
+```{r read_yurovsky_data}
+yy_read_in <- read_csv("../model_code/results/might_yurovsky_results.csv") %>%
+  rbind(mutate(read_csv("../model_code/results/trace_4.25_0.5_yurovsky_results.csv"), model = "small_partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/trace_8.75_0.01_yurovsky_results.csv"), model = "partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/pursuit_yurovsky_results.csv"), model = "pursuit")) %>%
+  filter(phase=="testing") %>%
+  mutate(
+    experiment = as.double(substr(condition, 4, 4)),
+    test = substr(condition, 6, nchar(condition)),
+    word_type = case_when(
+      trial_index < 7 ~ "homophone",
+      TRUE ~ "singleton"
+    ),
+    referent = case_when(
+      word_type == "singleton" ~ "singleton",
+      word_type == "homophone" & accuracy == 1 & substr(selection, 2, 2) == 1 ~ "first meaning",
+      word_type == "homophone" & accuracy == 1 & substr(selection, 2, 2) == 2 ~ "second meaning",
+      TRUE ~ "incorrect"
+    )
+  ) %>%
+  filter(accuracy == 1) %>%
+  select(!accuracy) %>%
+  group_by(model, experiment, test, word_type, referent, subject) %>%
+  summarize(count = n()) %>%
+  ungroup() %>%
+  mutate(
+    acc = count / 6
+  ) %>%
+  group_by(model, experiment, test, word_type, referent) %>%
+  summarize(
+    avg_accuracy = mean(acc)
+  ) %>%
+  ungroup()
+
+yy_exp <- tibble(
+  "experiment" = c(1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2),
+  "test" = c("primacy", "recency", "both", "primacy", "recency", "both", "both", 
+                  "primacy", "recency", "both",   "primacy", "recency", "both", "both"),
+  "word_type" = c("singleton", "singleton", "singleton",
+                  "homophone", "homophone", "homophone", "homophone", 
+                  "singleton", "singleton", "singleton",
+                  "homophone", "homophone", "homophone", "homophone"),
+  "referent" = c("singleton", "singleton", "singleton",
+                 "first meaning", "second meaning", "first meaning", "second meaning",
+                 "singleton", "singleton", "singleton",
+                 "first meaning", "second meaning", "first meaning", "second meaning"),
+  "human" = c(0.642, 0.642, 0.642, 0.580, 0.510, 0.524, 0.292,
+                 0.521, 0.582, 0.575, 0.524, 0.517, 0.350, 0.377)
+)
+
+yy_fub <- tibble(
+   "model" = c("FUb", "FUb", "FUb", "FUb", "FUb", "FUb", "FUb", 
+           "FUb", "FUb", "FUb", "FUb", "FUb", "FUb", "FUb",
+           "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed", 
+           "FUb-fixed", "FUb-fixed", "FUb-fixed", 
+           "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed", 
+           "FUb-fixed", "FUb-fixed", "FUb-fixed"),
+  "experiment" = c(1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2,
+                   1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2),
+  "test" = c("primacy", "recency", "both", "primacy", "recency", "both", "both", 
+                  "primacy", "recency", "both", "primacy", "recency", "both", "both",
+                  "primacy", "recency", "both", "primacy", "recency", "both", "both", 
+                  "primacy", "recency", "both", "primacy", "recency", "both", "both"),
+  "word_type" = c("singleton", "singleton", "singleton",
+                  "homophone", "homophone", "homophone", "homophone", 
+                  "singleton", "singleton", "singleton",
+                  "homophone", "homophone", "homophone", "homophone",
+                  "singleton", "singleton", "singleton",
+                  "homophone", "homophone", "homophone", "homophone", 
+                  "singleton", "singleton", "singleton",
+                  "homophone", "homophone", "homophone", "homophone"),
+  "referent" = c("singleton", "singleton", "singleton",
+                 "first meaning", "second meaning", "first meaning", "second meaning",
+                 "singleton", "singleton", "singleton",
+                 "first meaning", "second meaning", "first meaning", "second meaning",
+                 "singleton", "singleton", "singleton",
+                 "first meaning", "second meaning", "first meaning", "second meaning",
+                 "singleton", "singleton", "singleton",
+                 "first meaning", "second meaning", "first meaning", "second meaning"),
+  "avg_accuracy" = c(0.605, 0.622, 0.622, 0.533, 0.498, 0.359, 0.359,
+                 0.568, 0.565, 0.565, 0.504, 0.49, 0.372, 0.372,
+                 0.558, 0.571, 0.571, 0.508, 0.523, 0.38, 0.38,
+                 0.601, 0.597, 0.597, 0.524, 0.505, 0.377, 0.377),
+)
+
+yy <- yy_read_in %>%
+  rbind(yy_fub) %>%
+  left_join(yy_exp) %>%
+  mutate(
+    expt = paste("Yurovsky", experiment),
+    condition = paste(test, referent),
+    squared_error = (avg_accuracy - human)^2,
+    ape = abs((human - avg_accuracy) / human)
+  ) %>%
+  select(COLNAMES)
+```
+
+## Yu & Smith
+```{r read_yusmith_data}
+yu_smith_read_in <- read_csv("../model_code/results/might_yu_smith_results.csv") %>%
+  rbind(mutate(read_csv("../model_code/results/trace_4.25_0.5_yu_smith_results.csv"), model = "small_partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/trace_8.75_0.01_yu_smith_results.csv"), model = "partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/pursuit_yu_smith_results.csv"), model = "pursuit")) %>%
+  group_by(condition, model) %>%
+  summarise(
+    avg_accuracy = mean(accuracy)
+  ) %>%
+  mutate(
+    condition = factor(case_when(
+      condition == 2 ~ "2x2",
+      condition == 3 ~ "3x3",
+      condition == 4 ~ "4x4"
+    ))
+  )
+
+yu_smith_exp <- tibble("condition"=c("2x2", "3x3", "4x4"), 
+                            "human"=c(0.89,0.76,0.53))
+
+yu_smith_fub <- tibble("condition"=c("2x2", "3x3", "4x4", "2x2", "3x3", "4x4"), 
+                            "avg_accuracy"=c(0.891, 0.763, 0.527,
+                                             0.873, 0.762, 0.538),
+                            "model"=c("FUb", "FUb", "FUb", 
+                                        "FUb-fixed", "FUb-fixed", "FUb-fixed"))
+
+yu_smith <- yu_smith_read_in %>%
+  rbind(yu_smith_fub) %>%
+  left_join(yu_smith_exp) %>%
+  mutate(
+    expt = "Yu Smith",
+    squared_error = (avg_accuracy - human)^2,
+    ape = abs((human - avg_accuracy) / human)
+  ) %>%
+  select(COLNAMES)
+```
+
+## Suanda et al
+```{r read_suanda_data}
+suanda_exp <- tibble("condition" = c("highcd", "medcd", "lowcd"), 
+                  "human" = c(0.48, 0.39, 0.34))
+
+suanda_fub <- tibble("condition" = c("highcd", "medcd", "lowcd", "highcd", "medcd", "lowcd"
+                                ), 
+                  "model" = c("FUb", "FUb", "FUb",
+                              "FUb-fixed", "FUb-fixed", "FUb-fixed"),
+                  "avg_accuracy" = c(0.48, 0.39, 0.34,
+                                     0.432, 0.413, 0.377)
+                  )
+
+suanda_read_in <- read_csv("../model_code/results/might_3.0_suanda_results.csv") %>%
+  rbind(mutate(read_csv("../model_code/results/trace_1.5_0.01_suanda_results.csv"), model = "small_partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/trace_1.5_0.01_suanda_results.csv"), model = "partial_forgetting")) %>%
+  filter(
+    phase == "testing"
+  ) %>%
+  group_by(condition, model) %>%
+  summarize(
+    avg_accuracy = mean(accuracy)
+  )
+
+suanda <- suanda_read_in %>%
+  rbind(suanda_fub) %>%
+  left_join(suanda_exp) %>% 
+  mutate(
+    expt = "Suanda",
+    squared_error = (avg_accuracy - human)^2,
+    ape = abs((human - avg_accuracy) / human)
+  ) %>%
+  select(COLNAMES)
+```
+
+
+# Novel experiments
+## Expt 1, 2
+```{r read_expt1_data}
+expt12_expt <- read_csv("expt1.csv") %>%
+  filter(participants == "human") %>%
+  mutate(
+    human = mean_acc,
+    word_type = word_type_graph
+  ) %>%
+  select(c("expt", "condition", "word_type", "human"))
+
+expt12_fub <- tibble(
+  "word_type" = c("Target", "One-shot", "Filler", "Target", "One-shot", "Filler",
+                  "Target", "One-shot", "Filler", "Target", "One-shot", "Filler"),
+  "condition" = c("Confirm", "Confirm", "Confirm", "Retrieval", "Retrieval", "Retrieval",
+                  "Confirm", "Confirm", "Confirm", "Retrieval", "Retrieval", "Retrieval"),
+  "avg_accuracy" = c(0.5736, 0.2175, 0.38, 0.156, 0.2485, 0.188,
+                     0.6636, 0.2486, 0.4618, 0.2475, 0.2486, 0.6267),
+  "model" = c("FUb", "FUb", "FUb", "FUb", "FUb", "FUb",
+             "FUb-fixed", "FUb-fixed", "FUb-fixed", 
+             "FUb-fixed", "FUb-fixed", "FUb-fixed"))
+
+expt12_read_in <- read_csv("../model_code/results/might_expt1_2_results.csv") %>%
+  rbind(mutate(read_csv("../model_code/results/trace_4.25_0.5_expt1_2_results.csv"), model = "small_partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/trace_8.75_0.01_expt1_2_results.csv"), model = "partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/pursuit_expt1_2_results.csv"), model = "pursuit")) %>%
+  filter(
+    phase == "testing"
+  ) %>%
+  mutate(
+    condition = case_when(
+      condition %in% c("recall", "Retrieval") ~ "Retrieval",
+      condition %in% c("confirm", "Confirm") ~ "Confirm"
+    ),
+    word_type = case_when(
+      word %in% c("R1", "R2", "R3", "R4") & condition == "Retrieval" ~ "Target",
+      word %in% c("R1", "R2", "R3", "R4") & condition == "Confirm" ~ "Target",
+      word %in% c("W1", "W2", "W3", "W4") ~ "One-shot",
+      TRUE ~ "Filler"
+    )
+  ) %>%
+  group_by(model, condition, word_type) %>%
+  summarise(
+    avg_accuracy = mean(accuracy)
+  ) %>%
+  ungroup() 
+
+expt1 <- expt12_read_in %>%
+  rbind(expt12_fub) %>%
+  left_join(select(filter(expt12_expt, expt == "Expt 1"), c("condition", "word_type", "human"))) %>% 
+  mutate(
+    expt = "Exp1",
+    condition = paste(condition, word_type),
+    squared_error = (avg_accuracy - human)^2,
+    ape = abs((human - avg_accuracy) / human)
+  ) %>%
+  select(COLNAMES)
+
+expt2 <- expt12_read_in %>%
+  rbind(expt12_fub) %>%
+  left_join(select(filter(expt12_expt, expt == "Expt 2"), c("condition", "word_type", "human"))) %>% 
+  mutate(
+    expt = "Exp2",
+    condition = paste(condition, word_type),
+    squared_error = (avg_accuracy - human)^2,
+    ape = abs((human - avg_accuracy) / human)
+  ) %>%
+  select(COLNAMES)
+```
+
+## Expt 3
+```{r read_expt3_data}
+expt3_expt <- read_csv("expt3.csv") %>%
+  filter(part == "human") %>%
+  mutate(
+    human = mean_acc,
+  ) %>%
+  select(c("condition", "word_type", "human"))
+
+expt3_fub <- tibble(
+  "experiment" = c(3, 3, 3, 3, 3, 3, 3, 3),
+  "condition" = c("Conflict-first", "Conflict-first", "Confirm-first", "Confirm-first",
+                  "Conflict-first", "Conflict-first", "Confirm-first", "Confirm-first"), 
+  "word_type" = c("target", "filler", "target", "filler",
+                  "target", "filler", "target", "filler"), 
+  "avg_accuracy" = c(0.344, 0.222, 0.344, 0.222,
+                 0.327, 0.286, 0.215, 0.289), 
+  "model" = c("FUb", "FUb", "FUb", "FUb", 
+             "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed")
+)
+
+expt3_models <- read_csv("../model_code/results/might_expt3_results.csv") %>%
+  rbind(mutate(read_csv("../model_code/results/trace_4.25_0.5_expt3_results.csv"), model = "small_partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/trace_8.75_0.01_expt3_results.csv"), model = "partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/pursuit_expt3_results.csv"), model = "pursuit")) %>%
+  group_by(condition, experiment, word_type, model) %>%
+  summarise(
+    avg_accuracy = mean(accuracy)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    word_type = factor(word_type, levels=c("target", "filler"))
+  ) %>%
+  select(
+    "experiment", "condition", "word_type", "avg_accuracy", "model"
+  ) 
+
+expt3 <- expt3_models %>%
+  rbind(expt3_fub) %>%
+  left_join(expt3_expt) %>%
+  mutate(
+    expt = "Exp3",
+    squared_error = (avg_accuracy - human)^2,
+    ape = abs((human - avg_accuracy) / human)
+  ) %>%
+  select(COLNAMES)
+```
+
+
+## Expt 4
+```{r read_expt4_data}
+expt4_expt <- read_csv("expt4.csv") %>%
+  filter(participant == "human") %>%
+  mutate(
+    human = mean_acc,
+    block = case_when(
+      is.na(block) ~ "flush",
+      TRUE ~ block
+    )
+    # condition = paste(condition, word_type, block)
+  ) %>%
+  select(c("condition", "word_type", "block", "human"))
+
+expt4_fub <- tibble(
+  "condition" = c("same", "same", "same", 
+                  "switch", "switch", "switch",
+                  "same", "same", "same", 
+                  "switch", "switch", "switch"), 
+  "model" = c("FUb", "FUb", "FUb", "FUb", "FUb", "FUb", 
+             "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed", "FUb-fixed"), 
+  "block" = c("pre-flush", "flush", "post-flush", 
+                  "pre-flush", "flush", "post-flush",
+              "pre-flush", "flush", "post-flush", 
+                  "pre-flush", "flush", "post-flush"), 
+  "word_type" = c("target", "filler", "target", "target", "filler", "target",
+                  "target", "filler", "target", "target", "filler", "target"),
+  "avg_accuracy" = c(0.601, 0.602, 0.587, 0.362, 0.382, 0.42,
+                     0.474, 0.485, 0.504, 0.474, 0.485, 0.504)
+)
+
+expt4_read_in <- read_csv("../model_code/results/might_expt4_results.csv") %>%
+  rbind(mutate(read_csv("../model_code/results/trace_4.25_0.5_expt4_results.csv"), model = "small_partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/trace_8.75_0.01_expt4_results.csv"), model = "partial_forgetting")) %>%
+  rbind(mutate(read_csv("../model_code/results/pursuit_expt4_results.csv"), model = "pursuit")) %>%
+  mutate(
+    block = case_when(
+      substr(word, 1, 1) %in% c("f", "F") ~ "flush",
+      substr(word, 1, 1) %in% c("t", "T") ~ "postflush",
+      substr(word, 1, 1) %in% c("p", "P") ~ "preflush"
+    ),
+    word_type = case_when(
+      block == "flush" ~ "filler", 
+      TRUE ~ "target"
+    )
+  )
+
+expt4_model_learning_selection <- expt4_read_in %>%
+  filter(phase == "learning") %>%
+  pivot_wider(
+    id_cols = c(subject, word, phase, block, condition, model),
+    names_from = exposure,
+    values_from = c(accuracy, selection)
+  ) %>%
+  mutate(
+    num_selections = `accuracy_1` + `accuracy_2` + `accuracy_3`,
+    hypotheses = paste(selection_1, selection_2, selection_3),
+    test_comp = paste(subject, word, model)
+  ) %>%
+  filter(num_selections > 0)
+
+expt4_models <- expt4_read_in %>%
+  filter(phase == "testing") %>%
+  mutate(
+    test_comp = paste(subject, word, model)
+  ) %>%
+  filter(
+    test_comp %in% expt4_model_learning_selection$test_comp
+  ) %>%
+  left_join(expt4_model_learning_selection, by=c("test_comp", "subject", "word", "condition", "block",
+                                                 "phase", "model")) %>%
+  group_by(
+    condition, model, block, word_type
+  ) %>%
+  summarise(
+    avg_accuracy = mean(accuracy)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    block = factor(case_when(
+      block %in% c('preflush', 'pre-flush') ~ 'pre-flush',
+      block %in% c('postflush', 'post-flush') ~ 'post-flush',
+      TRUE ~ "flush"
+    ), levels=c('pre-flush', 'flush', 'post-flush')),
+    condition = case_when(
+      condition %in% c("same", "same_cswl") ~ "same",
+      condition %in% c("switch", "switch_cswl") ~ "switch"
+    )
+  )
+
+expt4 <- expt4_models %>%
+  rbind(expt4_fub) %>%
+  left_join(expt4_expt) %>%
+  mutate(
+    expt = "Exp4",
+    condition = paste(condition, block, word_type),
+    squared_error = (avg_accuracy - human)^2,
+    ape = abs((human - avg_accuracy) / human)
+  ) %>%
+  select(c("expt", "condition", "model", "avg_accuracy", "human", "squared_error", "ape"))
+```
+
+
+# AIC / BIC
+```{r simulations}
+simulations_aic <- trueswell %>%
+  rbind(yu_smith) %>%
+  rbind(yy) %>%
+  rbind(suanda) %>%
+  mutate(
+    k = case_when(
+      model == "FUb" ~ 3,
+      model == "FUb-fixed" ~ 3,
+      model == "pursuit" ~ 4,
+      model == "might" ~ 1,
+      TRUE ~ 2
+    )
+  ) %>%
+  group_by(model, k) %>%
+  summarize(
+    mape = mean(ape),
+    mse = mean(squared_error),
+    count = n()
+  ) %>%
+  ungroup() %>%
+  mutate(
+    rmse = sqrt(mse),
+    aic = count * log(mse) + 2*k,
+    bic = count * log(mse) + k*log(count)
+  )
+
+
+expt_aic <- expt3 %>%
+  rbind(expt2) %>%
+  rbind(expt1) %>%
+  rbind(expt4) %>%
+  mutate(
+    k = case_when(
+      model == "FUb" ~ 3,
+      model == "Pursuit" ~ 4,
+      model == "might" ~ 1,
+      TRUE ~ 2
+    )
+  ) %>%
+  group_by(model, k) %>%
+  summarize(
+    mape = mean(ape),
+    mse = mean(squared_error),
+    count = n()
+  ) %>%
+  ungroup() %>%
+  mutate(
+    rmse = sqrt(mse),
+    aic = count * log(mse) + 2*k,
+    bic = count * log(mse) + k*log(count)
+  )
+
+simulations_aic
+expt_aic
+```
+
+```{r all}
+all <- expt3 %>%
+  rbind(expt2) %>%
+  rbind(expt1) %>%
+  rbind(expt4) %>%
+  rbind(trueswell) %>%
+  rbind(yu_smith) %>%
+  rbind(yy) %>%
+  rbind(suanda) %>%
+  mutate(
+    k = case_when(
+      model == "FUb" ~ 3,
+      model == "Pursuit" ~ 4,
+      model == "FUb-fixed" ~ 3,
+      model == "might" ~ 1,
+      TRUE ~ 2
+    )
+  ) %>%
+  filter(model != "Human (reported)", model != "Human\n(reported)") %>%
+  group_by(model, k) %>%
+  summarize(
+    mape = mean(ape),
+    sd_mape = sd(ape),
+    mse = mean(squared_error),
+    sd_se = sd(squared_error),
+    count = n()
+  ) %>%
+  ungroup() %>%
+  mutate(
+    rmse = sqrt(mse),
+    aic = count * log(mse) + 2*k,
+    bic = count * log(mse) + k*log(count)
+  ) %>%
+  select(
+    model, rmse, mape, aic, bic
+  )
+
+all
+```
+
+```{r by_expt}
+all_by_expt <- expt1 %>%
+  rbind(expt2) %>%
+  rbind(expt3) %>%
+  rbind(expt4) %>%
+  rbind(trueswell) %>%
+  rbind(yu_smith) %>%
+  rbind(yy) %>%
+  rbind(suanda) %>%
+  group_by(model, expt) %>%
+  summarize(
+    mape = mean(ape),
+    rmse = sqrt(mean(squared_error)),
+    count = n()
+  ) %>%
+  ungroup() %>%
+  pivot_wider(names_from = model, values_from = c(mape, rmse)) %>%
+  select(
+    expt,count, rmse_might, mape_might,
+    rmse_partial_forgetting, mape_partial_forgetting,
+    "rmse_FUb-fixed", "mape_FUb-fixed",
+    rmse_pursuit, mape_pursuit,
+    rmse_small_partial_forgetting, mape_small_partial_forgetting
+  )
+
+print.data.frame(all_by_expt)
+
+
+```
