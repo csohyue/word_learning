@@ -24,6 +24,10 @@ The FUbG model takes in the data within an R file. Look at `model_code/models/fu
 
 The result files of the MIGHT and Pursuit learners
 
+### /tune_models
+
+Code to tune MIGHT models
+
 ### run_cswl.py
 
 `run_cswl.py` is the main function that you need to run the MIGHT and PURSUIT models.
